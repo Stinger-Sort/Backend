@@ -32,18 +32,25 @@ def change_state():
     i = request.json['id']
     w = request.json['weight']
 
+    is_exist = False
+
     try:
-        TrashCan.query.filter_by(id = i).update({TrashCan.weight: w})
-        db.session.commit()        
+        TrashCan.query.filter_by(id = i).one()
+        is_exist = True
     except:
-        db.session.add(TrashCan(i, w))
-        db.session.flush()
+        is_exist = False
+
+    if is_exist:
+        TrashCan.query.filter_by(id = i).update({TrashCan.weight: w})
         db.session.commit()
-            
+    else:
+        db.session.add(TrashCan(i, w))        
+        db.session.commit()
+
     return '200'
 
 
 @app.route('/trash_cans', methods=['GET'])
 def show_trash_cans():
-    trash_cans = TrashCan.query.all()
+    trash_cans = TrashCan.query.order_by(TrashCan.id).all()
     return render_template('trash_cans.html', trash_cans = trash_cans)
