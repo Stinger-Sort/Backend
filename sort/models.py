@@ -18,3 +18,12 @@ class Tag(db.Model):
     message_id = db.Column(db.Integer, db.ForeignKey(
         'message.id'), nullable=False)
     message = db.relationship('Message', backref=db.backref('tags', lazy=True))
+
+
+class TrashCan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    weight = db.Column(db.Float, nullable=False) 
+
+    def __init__(self, id, weight):
+        self.id = id
+        self.weight = weight
