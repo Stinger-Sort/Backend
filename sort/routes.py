@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for, request
+from flask import render_template, redirect, url_for, request, abort, jsonify
 
 from sort import app, db
 from sort.models import Message, TrashCan
@@ -34,6 +34,8 @@ def change_state():
 
     is_exist = False
 
+    action_type = 'Update'
+
     try:
         TrashCan.query.filter_by(id = i).one()
         is_exist = True
@@ -46,8 +48,10 @@ def change_state():
     else:
         db.session.add(TrashCan(i, w))        
         db.session.commit()
+        action_type = 'Creation'
 
-    return '200'
+    return jsonify({'host': request.host,'method': request.method,         
+        'charset': request.charset,'action': action_type, 'url': request.url})
 
 
 @app.route('/trash_cans', methods=['GET'])
