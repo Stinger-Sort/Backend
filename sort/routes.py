@@ -74,6 +74,7 @@ def redirect_to_signin(response):
     return response
 
 
+#обновление веса мусорки по ее id или создание новой мусорки
 @app.route('/change_state', methods=['POST'])
 def change_state():
     if not request.json or not 'id' in request.json:
@@ -82,15 +83,9 @@ def change_state():
     i = request.json['id']
     w = request.json['weight']
 
-    is_exist = False
+    is_exist = TrashCan.query.filter_by(id=i).first() is not None
 
     action_type = 'Update'
-
-    try:
-        TrashCan.query.filter_by(id=i).one()
-        is_exist = True
-    except:
-        is_exist = False
 
     if is_exist:
         TrashCan.query.filter_by(id=i).update({TrashCan.weight: w})
@@ -104,7 +99,45 @@ def change_state():
                     'charset': request.charset, 'action': action_type, 'url': request.url})
 
 
+#получение информации о заполненности всех существующих мусорных баков
 @app.route('/trash_cans', methods=['GET'])
 def show_trash_cans():
     trash_cans = TrashCan.query.order_by(TrashCan.id).all()
     return render_template('trash_cans.html', trash_cans=trash_cans)
+
+
+#Увеличение количества баллов пользователя
+@app.route('/add_points', methods=['POST'])
+def add_points():
+
+    if not request.json or not 'user_id' in request.json:
+        abort(400)
+
+    trash = request.json['trash']
+
+    is_exist = User.query.filter_by(id=request.json['user_id']).first() is not None
+
+    increase = trash['paper'] + trash['glass'] + trash['plastic'] + trash['waste']
+
+    if is_exist:
+        User.query.filter_by(id=request.json['user_id']).update({User.score: User.score + increase})
+        db.session.commit()
+    else:
+        abort(404)
+
+    return jsonify({'url': request.url, 'method': request.method, 
+        'added_points' : increase, 'user_id': request.json['user_id']})
+
+
+#Получение количества баллов пользователя
+@app.route('/get_score/<user_id>', methods=['GET'])
+def get_score(user_id):
+    is_exist = User.query.filter_by(id=user_id).first() is not None
+
+    if is_exist:
+        score = User.query.filter_by(id=user_id).one().score
+        return jsonify({'user_id': user_id, 'score': score})
+    else:
+        abort(404)
+
+
