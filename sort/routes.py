@@ -83,7 +83,7 @@ def change_state():
     i = request.json['id']
     w = request.json['weight']
 
-    is_exist = TrashCan.query.filter_by(id=i).exists()
+    is_exist = TrashCan.query.filter_by(id=i).first() is not None
 
     action_type = 'Update'
 
