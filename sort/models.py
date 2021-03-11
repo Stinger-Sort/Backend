@@ -1,5 +1,5 @@
-from sort import db, login_manager
 from flask_login import UserMixin
+from sort import db, login_manager
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
