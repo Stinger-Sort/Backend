@@ -11,6 +11,10 @@ class TrashCan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.Float, nullable=False)
 
+    def __init__(self, id, weight):
+        self.id = id
+        self.weight = weight
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
