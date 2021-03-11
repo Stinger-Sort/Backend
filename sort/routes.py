@@ -61,10 +61,10 @@ def logout():
     return 'You are logged out'
 
 
-@app.route('/home')
+@app.route('/home', methods=['GET'])
 @login_required
 def home():
-    return 'Current user ' + current_user.username
+    return current_user.login, {'Content-Type': 'text/html'}
 
 @app.after_request
 def redirect_to_signin(response):
