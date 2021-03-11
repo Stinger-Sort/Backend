@@ -1,5 +1,5 @@
-from flask import render_template, redirect, url_for, request, abort, jsonify, flash
 from flask_login import login_user, login_required, logout_user, current_user
+from flask import render_template, redirect, url_for, request, abort, jsonify, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from sort import app, db
@@ -13,7 +13,6 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    print(request)
     login = request.form.get('login')
     password = request.form.get('password')
 
@@ -21,8 +20,9 @@ def login_page():
         user = User.query.filter_by(login=login).first()
 
         if user and check_password_hash(user.password, password):
+            session.permanent = True
             login_user(user)
-
+            session['user_id'] = user.id
             next_page = request.args.get('next')
 
             return redirect(next_page)
@@ -32,6 +32,7 @@ def login_page():
         flash('Please fill login and password fields')
 
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -54,6 +55,7 @@ def register():
 
     return render_template('register.html')
 
+
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
@@ -66,13 +68,13 @@ def logout():
 def home():
     return current_user.login, {'Content-Type': 'text/html'}
 
-# 
+
 @app.after_request
 def redirect_to_signin(response):
     """Перенаправление на страницу авторизации, если пользователь не авторизован"""
     if response.status_code == 401:
         return redirect(url_for('login_page') + '?next=' + request.url)
-    
+
     return response
 
 
@@ -112,33 +114,41 @@ def show_trash_cans():
 def add_points():
     """Увеличение количества баллов пользователя"""
 
-    if not request.json or not 'user_id' in request.json:
+    user_id = request.json['user_id']
+
+    if not request.json or not user_id:
         abort(400)
 
     trash = request.json['trash']
 
-    is_exist = User.query.filter_by(id=request.json['user_id']).first() is not None
+    is_exist = User.query.filter_by(
+        id=user_id).first() is not None
 
-    increase = trash['paper'] + trash['glass'] + trash['plastic'] + trash['waste']
+    increase = trash['paper'] + trash['glass'] + \
+        trash['plastic'] + trash['waste']
 
     if is_exist:
-        User.query.filter_by(id=request.json['user_id']).update({User.score: User.score + increase})
+        User.query.filter_by(id=user_id).update(
+            {User.score: User.score + increase})
         db.session.commit()
     else:
         abort(404)
 
-    return jsonify({'url': request.url, 'method': request.method, 
-        'added_points' : increase, 'user_id': request.json['user_id']})
+    return jsonify({'url': request.url, 'method': request.method,
+                    'added_points': increase, 'user_id': user_id})
 
 
-@app.route('/get_score/<user_id>', methods=['GET'])
-def get_score(user_id):
+
+@app.route('/get_score', methods=['GET'])
+@login_required
+def get_score():
     """Получение количества баллов пользователя"""
-    is_exist = User.query.filter_by(id=user_id).first() is not None
+    user_id = session.get('user_id')
+    record = User.query.filter_by(id=user_id).first()
+    is_exist = record is not None
 
     if is_exist:
-        score = User.query.filter_by(id=user_id).one().score
+        score = record.score
         return jsonify({'user_id': user_id, 'score': score})
     else:
         abort(404)
-
