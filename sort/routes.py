@@ -66,17 +66,19 @@ def logout():
 def home():
     return current_user.login, {'Content-Type': 'text/html'}
 
+# 
 @app.after_request
 def redirect_to_signin(response):
+    """Перенаправление на страницу авторизации, если пользователь не авторизован"""
     if response.status_code == 401:
         return redirect(url_for('login_page') + '?next=' + request.url)
     
     return response
 
 
-#обновление веса мусорки по ее id или создание новой мусорки
 @app.route('/change_state', methods=['POST'])
 def change_state():
+    """Обновление веса мусорки по ее id или создание новой мусорки"""
     if not request.json or not 'id' in request.json:
         abort(400)
 
@@ -99,16 +101,16 @@ def change_state():
                     'charset': request.charset, 'action': action_type, 'url': request.url})
 
 
-#получение информации о заполненности всех существующих мусорных баков
 @app.route('/trash_cans', methods=['GET'])
 def show_trash_cans():
+    """Получение информации о заполненности всех существующих мусорных баков"""
     trash_cans = TrashCan.query.order_by(TrashCan.id).all()
     return render_template('trash_cans.html', trash_cans=trash_cans)
 
 
-#Увеличение количества баллов пользователя
 @app.route('/add_points', methods=['POST'])
 def add_points():
+    """Увеличение количества баллов пользователя"""
 
     if not request.json or not 'user_id' in request.json:
         abort(400)
@@ -129,9 +131,9 @@ def add_points():
         'added_points' : increase, 'user_id': request.json['user_id']})
 
 
-#Получение количества баллов пользователя
 @app.route('/get_score/<user_id>', methods=['GET'])
 def get_score(user_id):
+    """Получение количества баллов пользователя"""
     is_exist = User.query.filter_by(id=user_id).first() is not None
 
     if is_exist:
@@ -139,5 +141,4 @@ def get_score(user_id):
         return jsonify({'user_id': user_id, 'score': score})
     else:
         abort(404)
-
 
