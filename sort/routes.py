@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from sort import app, db
 from sort.models import TrashCan, User
-
+from sort.utils import trash_counter, send_email
 
 @app.route('/')
 def index():
@@ -124,8 +124,7 @@ def add_points():
     is_exist = User.query.filter_by(
         id=user_id).first() is not None
 
-    increase = trash['paper'] + trash['glass'] + \
-        trash['plastic'] + trash['waste']
+    increase = trash_counter(trash)
 
     if is_exist:
         User.query.filter_by(id=user_id).update(
@@ -152,3 +151,10 @@ def get_score():
         return jsonify({'user_id': user_id, 'score': score})
     else:
         abort(404)
+
+
+@app.route('/test_email')
+def test_email():
+    """нужно только для теста, потом удалю"""
+    send_email(subject='test', recipients=['nesnaiker@yandex.ru'], text_body='test')
+    return 'ыыыы'
