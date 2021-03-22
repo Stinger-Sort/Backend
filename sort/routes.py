@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sort import app, db
 from sort.models import TrashCan, User
 from sort.utils import trash_counter, send_email
+from random import randrange
 
 @app.route('/')
 def index():
@@ -13,8 +14,9 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
+    """Email для входа и регистрации"""
     login = request.form.get('login')
-    password = request.form.get('password')
+    password = randrange(1000, 9999)
 
     if login and password:
         user = User.query.filter_by(login=login).first()
@@ -36,22 +38,20 @@ def login_page():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    """"Ввод пароля потверждения"""
     login = request.form.get('login')
     password = request.form.get('password')
-    password_confirm = request.form.get('password_confirm')
 
     if request.method == 'POST':
-        if not (login or password or password_confirm):
-            flash('Please, fill all fields!')
-        elif password != password_confirm:
-            flash('Passwords are not equal!')
+        if not login:
+            flash('Please, fill login')
         else:
             hash_pwd = generate_password_hash(password)
             new_user = User(login=login, password=hash_pwd)
             db.session.add(new_user)
             db.session.commit()
 
-            return redirect(url_for('login_page'))
+            return redirect(url_for('send_password'))
 
     return render_template('register.html')
 
@@ -153,8 +153,8 @@ def get_score():
         abort(404)
 
 
-@app.route('/test_email')
+@app.route('/send_password', methods=['POST'])
 def test_email():
-    """нужно только для теста, потом удалю"""
-    send_email(subject='test', recipients=['nesnaiker@yandex.ru'], text_body='test')
-    return 'ыыыы'
+    email = request.json['email']
+    send_email(subject='test', recipients=[email], text_body='test')
+    return redirect(url_for('login_page'))
