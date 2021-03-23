@@ -17,21 +17,21 @@ def index():
 def login_page():
     """Email для входа и регистрации"""
     email = request.json['email']
-    password = randrange(1000, 9999)
+    password = str(randrange(1000, 9999))
     success = False
 
     if email:
         user = User.query.filter_by(email=email)
 
         if user.first():
-            new_hash = generate_password_hash(str(password))
+            new_hash = generate_password_hash(password)
             user.update({User.password: new_hash})
             db.session.commit()
 
             send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
             success = True
         else:
-            hash_pwd = generate_password_hash(str(password))
+            hash_pwd = generate_password_hash(password)
             new_user = User(email=email, password=hash_pwd)
             db.session.add(new_user)
             db.session.commit()
@@ -48,7 +48,7 @@ def login_page():
 def auth():
     """"Ввод пароля потверждения"""
     email = request.json['email']
-    password = request.json['password']
+    password = str(request.json['password'])
     is_logined = False
 
     if email and password:
