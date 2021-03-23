@@ -7,6 +7,7 @@ from sort.models import TrashCan, User
 from sort.utils import trash_counter, send_email
 from random import randrange
 
+
 @app.route('/')
 def index():
     return 'Ооо повезло-повезло'
@@ -15,45 +16,55 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
     """Email для входа и регистрации"""
-    login = request.form.get('login')
+    email = request.json['email']
     password = randrange(1000, 9999)
+    success = False
 
-    if login and password:
-        user = User.query.filter_by(login=login).first()
+    if email:
+        user = User.query.filter_by(email=email)
+
+        if user.first():
+            new_hash = generate_password_hash(str(password))
+            user.update({User.password: new_hash})
+            db.session.commit()
+
+            send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
+            success = True
+        else:
+            hash_pwd = generate_password_hash(str(password))
+            new_user = User(email=email, password=hash_pwd)
+            db.session.add(new_user)
+            db.session.commit()
+
+            send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
+            success = True
+    else:
+        abort(400)
+
+    return jsonify({"success": success})
+
+
+@app.route('/login_with_code', methods=['POST'])
+def auth():
+    """"Ввод пароля потверждения"""
+    email = request.json['email']
+    password = request.json['password']
+    is_logined = False
+
+    if email and password:
+        user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
             session.permanent = True
             login_user(user)
             session['user_id'] = user.id
-            next_page = request.args.get('next')
-
-            return redirect(next_page)
+            is_logined = True
         else:
-            flash('Login or password is not correct')
+            abort(404)                   
     else:
-        flash('Please fill login and password fields')
+        abort(400)      
 
-    return render_template('login.html')
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    """"Ввод пароля потверждения"""
-    login = request.form.get('login')
-    password = request.form.get('password')
-
-    if request.method == 'POST':
-        if not login:
-            flash('Please, fill login')
-        else:
-            hash_pwd = generate_password_hash(password)
-            new_user = User(login=login, password=hash_pwd)
-            db.session.add(new_user)
-            db.session.commit()
-
-            return redirect(url_for('send_password'))
-
-    return render_template('register.html')
+    return jsonify({"login success": is_logined})
 
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -137,7 +148,6 @@ def add_points():
                     'added_points': increase, 'user_id': user_id})
 
 
-
 @app.route('/get_score', methods=['GET'])
 @login_required
 def get_score():
@@ -152,9 +162,3 @@ def get_score():
     else:
         abort(404)
 
-
-@app.route('/send_password', methods=['POST'])
-def test_email():
-    email = request.json['email']
-    send_email(subject='test', recipients=[email], text_body='test')
-    return redirect(url_for('login_page'))
