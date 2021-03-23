@@ -13,7 +13,7 @@ def index():
     return 'Ооо повезло-повезло'
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['POST'])
 def login_page():
     """Email для входа и регистрации"""
     email = request.json['email']
