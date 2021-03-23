@@ -20,12 +20,11 @@ def login_page():
     password = str(randrange(1000, 9999))
     success = False
 
-    hash_pwd = generate_password_hash(password)
     if email:
         user = User.query.filter_by(email=email)
-
+        hash_pwd = generate_password_hash(password)
         if user.first():            
-            user.update({User.password: new_hash})
+            user.update({User.password: hash_pwd})
         else:            
             new_user = User(email=email, password=hash_pwd)
             db.session.add(new_user)
