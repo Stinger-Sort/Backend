@@ -3,7 +3,7 @@ from sort import db, login_manager
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    login = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
     score = db.Column(db.Float, default=0 ,nullable=False)
 
