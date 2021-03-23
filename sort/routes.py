@@ -26,18 +26,14 @@ def login_page():
         if user.first():
             new_hash = generate_password_hash(password)
             user.update({User.password: new_hash})
-            db.session.commit()
-
-            send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
-            success = True
         else:
             hash_pwd = generate_password_hash(password)
             new_user = User(email=email, password=hash_pwd)
             db.session.add(new_user)
-            db.session.commit()
+        db.session.commit()
 
-            send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
-            success = True
+        send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
+        success = True
     else:
         abort(400)
 
