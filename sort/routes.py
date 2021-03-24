@@ -1,8 +1,8 @@
-from flask_login import login_user, login_required, logout_user, current_user
-from flask import render_template, redirect, url_for, request, abort, jsonify, flash, session
+from flask import render_template, redirect, url_for, request, abort, jsonify
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from sort import app, db
+from sort import app, db, jwt
 from sort.models import TrashCan, User
 from sort.utils import trash_counter, send_email
 from random import randrange
@@ -43,35 +43,30 @@ def auth():
     """"Ввод пароля потверждения"""
     email = request.json['email']
     password = str(request.json['password'])
-    is_logined = False
 
     if email and password:
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
-            session.permanent = True
-            login_user(user)
-            session['user_id'] = user.id
-            is_logined = True
+            access_token = create_access_token(identity=email)
         else:
-            abort(404)                   
+            abort(404)
     else:
-        abort(400)      
+        abort(400)
 
-    return jsonify({"login success": is_logined})
+    return jsonify({"access_token": access_token})
 
 
 @app.route('/logout', methods=['GET', 'POST'])
-@login_required
 def logout():
-    logout_user()
     return 'You are logged out'
 
 
 @app.route('/home', methods=['GET'])
-@login_required
+@jwt_required()
 def home():
-    return current_user.login, {'Content-Type': 'text/html'}
+    current_user = get_jwt_identity()
+    return jsonify({"Current user": current_user})
 
 
 @app.after_request
@@ -83,7 +78,7 @@ def redirect_to_signin(response):
     return response
 
 
-@app.route('/change_state', methods=['POST'])
+@app.route('/change_state', methods=['POST', 'PUT'])
 def change_state():
     """Обновление веса мусорки по ее id или создание новой мусорки"""
     if not request.json or not 'id' in request.json:
@@ -143,10 +138,10 @@ def add_points():
 
 
 @app.route('/get_score', methods=['GET'])
-@login_required
+@jwt_required()
 def get_score():
     """Получение количества баллов пользователя"""
-    user_id = session.get('user_id')
+    user_id = get_jwt_identity()
     record = User.query.filter_by(id=user_id).first()
     is_exist = record is not None
 
@@ -155,4 +150,3 @@ def get_score():
         return jsonify({'user_id': user_id, 'score': score})
     else:
         abort(404)
-

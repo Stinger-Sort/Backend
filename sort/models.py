@@ -1,5 +1,5 @@
 from flask_login import UserMixin
-from sort import db, login_manager
+from sort import db
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,7 +14,3 @@ class TrashCan(db.Model):
     def __init__(self, id, weight):
         self.id = id
         self.weight = weight
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(user_id)
