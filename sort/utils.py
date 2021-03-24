@@ -1,5 +1,5 @@
 from flask_mail import Message
-from sort import mail
+from sort import app, mail
 
 LOGIN_SUBJECT = 'Код для авторизации в приложении Sort'
 SENDER = 'sort.app.yar@gmail.com'
@@ -7,7 +7,7 @@ SENDER = 'sort.app.yar@gmail.com'
 
 def trash_counter(trash):
     """Сумма баллов пользователя"""
-    return sum(trash)
+    return sum(trash.values())
 
 
 def send_email(recipients, html_body, text_body=' ', subject=LOGIN_SUBJECT, sender=SENDER):
