@@ -8,11 +8,6 @@ from sort.utils import trash_counter, send_email
 from random import randrange
 
 
-@app.route('/')
-def index():
-    return 'Ооо повезло-повезло'
-
-
 @app.route('/login', methods=['POST'])
 def login_page():
     """Email для входа и регистрации"""
@@ -23,9 +18,9 @@ def login_page():
     if email:
         user = User.query.filter_by(email=email)
         hash_pwd = generate_password_hash(password)
-        if user.first():            
+        if user.first():
             user.update({User.password: hash_pwd})
-        else:            
+        else:
             new_user = User(email=email, password=hash_pwd)
             db.session.add(new_user)
         db.session.commit()
@@ -59,12 +54,14 @@ def auth():
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
+    """Выйти из профиля"""
     return 'You are logged out'
 
 
 @app.route('/home', methods=['GET'])
 @jwt_required()
 def home():
+    """Профиль пользователя"""
     current_user = get_jwt_identity()
     return jsonify({"Current user": current_user})
 
@@ -84,23 +81,24 @@ def change_state():
     if not request.json or not 'id' in request.json:
         abort(400)
 
-    i = request.json['id']
-    w = request.json['weight']
+    id = request.json['id']
+    weight = request.json['weight']
 
-    is_exist = TrashCan.query.filter_by(id=i).first() is not None
+    is_exist = TrashCan.query.filter_by(id=id).first() is not None
 
     action_type = 'Update'
 
     if is_exist:
-        TrashCan.query.filter_by(id=i).update({TrashCan.weight: w})
+        TrashCan.query.filter_by(id=id).update({TrashCan.weight: weight})
         db.session.commit()
     else:
-        db.session.add(TrashCan(i, w))
+        db.session.add(TrashCan(id, weight))
         db.session.commit()
         action_type = 'Creation'
 
     return jsonify({'host': request.host, 'method': request.method,
-                    'charset': request.charset, 'action': action_type, 'url': request.url})
+                    'charset': request.charset, 'action': action_type,
+                    'url': request.url})
 
 
 @app.route('/trash_cans', methods=['GET'])
@@ -143,10 +141,9 @@ def get_score():
     """Получение количества баллов пользователя"""
     user_id = get_jwt_identity()
     record = User.query.filter_by(id=user_id).first()
-    is_exist = record is not None
 
-    if is_exist:
-        score = record.score
-        return jsonify({'user_id': user_id, 'score': score})
-    else:
+    if not record:
         abort(404)
+
+    score = record.score
+    return jsonify({'user_id': user_id, 'score': score})
