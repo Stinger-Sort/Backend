@@ -10,7 +10,11 @@ class User(db.Model, UserMixin):
 class TrashCan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.Float, nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longtitude = db.Column(db.Float, nullable=False)
 
-    def __init__(self, id, weight):
+    def __init__(self, id, weight, lat,lon):
         self.id = id
         self.weight = weight
+        self.latitude = lat
+        self.longtitude = lon

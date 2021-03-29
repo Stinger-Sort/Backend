@@ -77,25 +77,39 @@ def redirect_to_signin(response):
 
 @app.route('/change_state', methods=['POST', 'PUT'])
 def change_state():
-    """Обновление веса мусорки по ее id или создание новой мусорки"""
-    if not request.json or not 'id' in request.json:
+    """Обновление веса мусорки по ее id или создание новой мусорки
+       Форматы для json: 
+        {'id': 1, 'weight':2.3}
+        или
+        {'id': 1, 'weight':2.3, 'location': {'latitude':54.97, 'longtitude':73.38}}
+    """
+    req = request.json
+    if not req or not 'id' in req or not 'weight' in req:
         abort(400)
 
-    id = request.json['id']
-    weight = request.json['weight']
+    id = req['id']
+    weight = req['weight']
+    lat, lon = 0, 0
 
-    is_exist = TrashCan.query.filter_by(id=id).first() is not None
+    is_location = 'location' in req
+    if is_location:
+        loc = req['location']
+        lat, lon = loc['latitude'], loc['longtitude']
+
+    can = TrashCan.query.filter_by(id=id)   
+    is_exist = can.first() is not None
 
     action_type = 'Update'
 
     if is_exist:
-        TrashCan.query.filter_by(id=id).update({TrashCan.weight: weight})
-        db.session.commit()
+        can.update({TrashCan.weight: weight})
+        if is_location:
+            can.update({TrashCan.latitude:lat,TrashCan.longtitude:lon})
     else:
-        db.session.add(TrashCan(id, weight))
-        db.session.commit()
+        db.session.add(TrashCan(id, weight, lat, lon))
         action_type = 'Creation'
 
+    db.session.commit()
     return jsonify({'host': request.host, 'method': request.method,
                     'charset': request.charset, 'action': action_type,
                     'url': request.url})
