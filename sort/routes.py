@@ -77,20 +77,23 @@ def redirect_to_signin(response):
 
 @app.route('/change_state', methods=['POST', 'PUT'])
 def change_state():
-    """Обновление веса мусорки по ее id или создание новой мусорки"""
-    """форматы для json: 
+    """Обновление веса мусорки по ее id или создание новой мусорки
+       Форматы для json: 
         {'id': 1, 'weight':2.3}
         или
         {'id': 1, 'weight':2.3, 'location': {'latitude':54.97, 'longtitude':73.38}}
     """
-    if not request.json or not 'id' in request.json or not 'weight' in request.json:
+    req = request.json
+    if not req or not 'id' in req or not 'weight' in req:
         abort(400)
 
-    id = request.json['id']
-    weight = request.json['weight']
+    id = req['id']
+    weight = req['weight']
     lat, lon = 0, 0
-    if 'location' in request.json:
-        loc = request.json['location']
+
+    is_location = 'location' in req
+    if is_location:
+        loc = req['location']
         lat, lon = loc['latitude'], loc['longtitude']
 
     can = TrashCan.query.filter_by(id=id)   
@@ -100,7 +103,7 @@ def change_state():
 
     if is_exist:
         can.update({TrashCan.weight: weight})
-        if 'location' in request.json:
+        if is_location:
             can.update({TrashCan.latitude:lat,TrashCan.longtitude:lon})
     else:
         db.session.add(TrashCan(id, weight, lat, lon))
