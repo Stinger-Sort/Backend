@@ -25,4 +25,23 @@ def required_fields(fields: tuple, record: dict):
     """Проверка запроса на необходимые поля"""
     for field in fields:
         if field not in record.keys():
-            abort(400)
+            abort(400))
+
+
+def db_coords(cans):
+    lats_longs = []
+    for can in cans:
+        lats_longs.append((can.latitude,can.longitude))
+    return lats_longs
+
+
+def compare_coords(cans, lat, lon, precision=0.015):
+    close_cans = []
+    lats_longs = db_coords(cans)
+    for c in lats_longs:
+        lat_dif = abs(c[0] - lat)
+        long_dif = abs(c[1] - lon)
+        if lat_dif < precision and long_dif < precision:
+            close_cans.append(c)
+    return close_cans
+

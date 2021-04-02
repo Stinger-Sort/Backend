@@ -11,7 +11,7 @@
     <h3>trash cans list</h3>
     {% for can in trash_cans %}
     <div>id = {{ can.id }}&nbsp; weight = {{ can.weight }}&nbsp;
-    location{lat:{{can.latitude}}, long:{{can.longtitude}}}
+    location{lat:{{can.latitude}}, long:{{can.longitude}}}
     paper = {{ can.paper }} paper = {{ can.glass }} paper = {{ can.waste }}
     </div>
     {% endfor %}
