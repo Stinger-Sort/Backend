@@ -1,19 +1,21 @@
 from flask import render_template, redirect, url_for, request, abort, jsonify
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import jwt_required, create_access_token
+from flask_jwt_extended import get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
-from sort import app, db, jwt
-from sort.models import TrashCan, User
-from sort.utils import trash_counter, send_email
+from sort import app, db
+from sort.models import TrashCan, User, Img
+from sort.utils import trash_counter, send_email, required_fields
 from random import randrange
 
 
 @app.route('/login', methods=['POST'])
 def login_page():
     """Email для входа и регистрации"""
+    # TODO: email-валидатор
     email = request.json['email']
     password = str(randrange(1000, 9999))
-    success = False
 
     if email:
         user = User.query.filter_by(email=email)
@@ -26,17 +28,17 @@ def login_page():
         db.session.commit()
 
         send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
-        success = True
     else:
         abort(400)
 
-    return jsonify({"success": success})
+    return jsonify({"success": True})
 
 
 @app.route('/login_with_code', methods=['POST'])
 def auth():
     """"Ввод пароля потверждения"""
     email = request.json['email']
+    # TODO: проверка пароля на численный тип
     password = str(request.json['password'])
 
     if email and password:
@@ -68,7 +70,8 @@ def home():
 
 @app.after_request
 def redirect_to_signin(response):
-    """Перенаправление на страницу авторизации, если пользователь не авторизован"""
+    """Перенаправление на страницу авторизации,
+        если пользователь не авторизован"""
     if response.status_code == 401:
         return redirect(url_for('login_page') + '?next=' + request.url)
 
@@ -78,35 +81,42 @@ def redirect_to_signin(response):
 @app.route('/change_state', methods=['POST', 'PUT'])
 def change_state():
     """Обновление веса мусорки по ее id или создание новой мусорки
-       Форматы для json: 
-        {'id': 1, 'weight':2.3}
-        или
-        {'id': 1, 'weight':2.3, 'location': {'latitude':54.97, 'longtitude':73.38}}
     """
-    req = request.json
-    if not req or not 'id' in req or not 'weight' in req:
-        abort(400)
+    record = request.json
+    fields = ('point_id', 'trash')
 
-    id = req['id']
-    weight = req['weight']
+    required_fields(fields, record)
+
+    id = record['point_id']
+    fullness = record['point_full']
+    trash = record['trash']
+
+    paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
+
+    weight = trash_counter(trash)
     lat, lon = 0, 0
 
-    is_location = 'location' in req
+    is_location = 'location' in record
     if is_location:
-        loc = req['location']
-        lat, lon = loc['latitude'], loc['longtitude']
+        loc = record['location']
+        lat, lon = loc['latitude'], loc['longitude']
 
-    can = TrashCan.query.filter_by(id=id)   
+    can = TrashCan.query.filter_by(id=id)
     is_exist = can.first() is not None
 
     action_type = 'Update'
 
     if is_exist:
-        can.update({TrashCan.weight: weight})
+        update_request = {TrashCan.weight: weight, TrashCan.paper: paper,
+                          TrashCan.glass: glass, TrashCan.waste: waste,
+                          TrashCan.fullness: fullness}
         if is_location:
-            can.update({TrashCan.latitude:lat,TrashCan.longtitude:lon})
+            location_update = {TrashCan.latitude: lat, TrashCan.longitude: lon}
+            update_request.update(location_update)
+        else:
+            can.update(update_request)
     else:
-        db.session.add(TrashCan(id, weight, lat, lon))
+        db.session.add(TrashCan(id, weight, lat, lon, paper, glass, waste))
         action_type = 'Creation'
 
     db.session.commit()
@@ -126,12 +136,12 @@ def show_trash_cans():
 def add_points():
     """Увеличение количества баллов пользователя"""
 
-    user_id = request.json['user_id']
+    record = request.json
+    fields = ('user_id')
+    required_fields(fields, record)
 
-    if not request.json or not user_id:
-        abort(400)
-
-    trash = request.json['trash']
+    user_id = record['user_id']
+    trash = record['trash']
 
     is_exist = User.query.filter_by(
         id=user_id).first() is not None
@@ -161,3 +171,21 @@ def get_score():
 
     score = record.score
     return jsonify({'user_id': user_id, 'score': score})
+
+
+@app.route('/upload_profile_pic', methods=['POST'])
+def upload_profile_pic():
+    pic = request.files['pic']
+    if not pic:
+        return 'Изображение отсутствует', 400
+
+    filename = secure_filename(pic.filename)
+    mimetype = pic.mimetype
+    if not filename or not mimetype:
+        return 'Ошибка при загрузке', 400
+
+    img = Img(img=pic.read(), name=filename, mimetype=mimetype)
+    db.session.add(img)
+    db.session.commit()
+
+    return 'Img Uploaded!', 200
