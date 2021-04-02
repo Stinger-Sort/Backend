@@ -83,7 +83,7 @@ def change_state():
     """Обновление веса мусорки по ее id или создание новой мусорки
     """
     record = request.json
-    fields = ( 'trash')
+    fields = ('point_id', 'trash')
 
     required_fields(fields, record)
 
