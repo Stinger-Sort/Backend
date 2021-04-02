@@ -9,7 +9,7 @@ from config import login, password, database, mail_password
 
 app = Flask(__name__)
 app.secret_key = 'some secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/pavel/test.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgres://{login}:{password}@localhost/{database}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)

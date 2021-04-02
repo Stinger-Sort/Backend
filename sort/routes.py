@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img
-from sort.utils import trash_counter, send_email, required_fields
+from sort.utils import trash_counter, send_email, required_fields, compare_coords
 from random import randrange
 
 
@@ -83,7 +83,7 @@ def change_state():
     """Обновление веса мусорки по ее id или создание новой мусорки
     """
     record = request.json
-    fields = ('point_id', 'trash')
+    fields = ( 'trash')
 
     required_fields(fields, record)
 
@@ -189,3 +189,30 @@ def upload_profile_pic():
     db.session.commit()
 
     return 'Img Uploaded!', 200
+
+
+@app.route('/close_cans', methods=['POST'])
+def get_close_cans():
+    req = request.json
+    fields = ('latitude','longitude')
+
+    # required_fields(fields, req)
+
+    lat = req['latitude']
+    lon = req['longitude']
+    trash_cans = TrashCan.query.order_by(TrashCan.id).all()
+
+    precison = 0.015
+    if 'precison' in req:
+        precison = req['precison']
+    
+    close_cans = compare_coords(trash_cans, lat, lon, precison)
+    json = {'close_cans': len(close_cans)}
+
+    n = 1
+    for c in close_cans:
+        json['latitude_' + str(n)] = c[0]
+        json['longitude_' + str(n)] = c[1]
+        n += 1
+
+    return jsonify(json)
