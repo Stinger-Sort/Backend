@@ -23,5 +23,6 @@ def send_email(recipients, html_body):
 
 def required_fields(fields: tuple, record: dict):
     """Проверка запроса на необходимые поля"""
-    if fields not in record:
-        abort(400)
+    for field in fields:
+        if field not in record.keys():
+            abort(400)
