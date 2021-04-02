@@ -13,7 +13,6 @@ from random import randrange
 @app.route('/login', methods=['POST'])
 def login_page():
     """Email для входа и регистрации"""
-    # TODO: email-валидатор
     email = request.json['email']
     password = str(randrange(1000, 9999))
 
@@ -39,12 +38,12 @@ def auth():
     """"Ввод пароля потверждения"""
     email = request.json['email']
     # TODO: проверка пароля на численный тип
-    password = str(request.json['password'])
+    password = request.json['password']
 
-    if email and password:
+    if email and password and type(password) == int:
         user = User.query.filter_by(email=email).first()
 
-        if user and check_password_hash(user.password, password):
+        if user and check_password_hash(user.password, str(password)):
             access_token = create_access_token(identity=email)
         else:
             abort(404)
@@ -188,7 +187,7 @@ def upload_profile_pic():
     db.session.add(img)
     db.session.commit()
 
-    return 'Img Uploaded!', 200
+    return 'Изображение загружено!', 200
 
 
 @app.route('/close_cans', methods=['POST'])
@@ -216,3 +215,4 @@ def get_close_cans():
         n += 1
 
     return jsonify(json)
+
