@@ -174,12 +174,14 @@ def get_score():
 
 @app.route('/upload_profile_pic', methods=['POST'])
 def upload_profile_pic():
+
     pic = request.files['pic']
     if not pic:
         return 'Изображение отсутствует', 400
 
     filename = secure_filename(pic.filename)
     mimetype = pic.mimetype
+    print(mimetype)
     if not filename or not mimetype:
         return 'Ошибка при загрузке', 400
 

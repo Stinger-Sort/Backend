@@ -1,22 +1,19 @@
 from sort import db
 
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(128))
-    score = db.Column(db.Float, default=0, nullable=False)
-    # profile_pic = db.relationship(
-    #     "Img", backref=db.backref("img", uselist=False))
-    # profile_pic_id = db.Column(db.Integer, db.ForeignKey('img.id'))
-
-
 class Img(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     img = db.Column(db.Text, unique=True, nullable=False)
     name = db.Column(db.Text, nullable=False)
     mimetype = db.Column(db.Text, nullable=False)
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(128))
+    score = db.Column(db.Float, default=0, nullable=False)
+    profile_pic = db.relationship(
+        "Img", backref=db.backref("Img", uselist=False))
+    profile_pic_id = db.Column(db.Integer, db.ForeignKey('img.id'))
 
 class TrashCan(db.Model):
     id = db.Column(db.Integer, primary_key=True)

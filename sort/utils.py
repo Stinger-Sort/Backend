@@ -25,8 +25,8 @@ def required_fields(fields: tuple, record: dict):
     """Проверка запроса на необходимые поля"""
     for field in fields:
         if field not in record.keys():
-            abort(400))
-
+            abort(400)
+            
 
 def db_coords(cans):
     lats_longs = []
