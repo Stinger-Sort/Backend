@@ -3,7 +3,7 @@ from flask_mail import Message
 from sort import mail
 
 
-def trash_counter(trash: dict):
+def total_weight(trash: dict):
     """Общий вес мусора"""
     return sum(trash.values())
 

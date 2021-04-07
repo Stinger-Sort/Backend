@@ -1,5 +1,4 @@
 from sort import db
-from sqlalchemy.ext.hybrid import hybrid_property
 
 class Img(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -24,6 +23,8 @@ class TrashCan(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     fullness = db.Column(db.Float, default=0)
+    state = db.Column(db.Integer, default=100)
+    state_user = db.Column(db.Integer, default=-1)
 
     def __init__(self, lat, lon):
         self.latitude = lat
