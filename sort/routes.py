@@ -1,13 +1,23 @@
-from flask import render_template, redirect, url_for, request, abort, jsonify
+from flask import redirect, url_for, request, abort, jsonify
 from flask_jwt_extended import jwt_required, create_access_token
 from flask_jwt_extended import get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from sort import app, db
-from sort.models import TrashCan, User, Img
-from sort.utils import trash_counter, send_email, required_fields, compare_coords
+from sort.models import TrashCan, User, Img, History
+from sort.utils import trash_counter, send_email, required_fields
+from sort.utils import compare_coords, cans_info, users_info
 from random import randrange
+
+
+@app.route('/', methods=['GET'])
+def index():
+    links = []
+    for rule in app.url_map.iter_rules():
+        links.append(rule)
+
+    return str(links)
 
 
 @app.route('/login', methods=['POST'])
@@ -37,7 +47,6 @@ def login_page():
 def auth():
     """"Ввод пароля потверждения"""
     email = request.json['email']
-    # TODO: проверка пароля на численный тип
     password = request.json['password']
 
     if email and password and type(password) == int:
@@ -53,10 +62,11 @@ def auth():
     return jsonify({"access_token": access_token})
 
 
-@app.route('/logout', methods=['GET', 'POST'])
-def logout():
+@app.route('/logout', methods=['GET'])
+@jwt_required()
+def logout_route():
     """Выйти из профиля"""
-    return 'You are logged out'
+    return "logout()"
 
 
 @app.route('/home', methods=['GET'])
@@ -77,58 +87,61 @@ def redirect_to_signin(response):
     return response
 
 
-@app.route('/change_state', methods=['POST', 'PUT'])
+@app.route('/change_state', methods=['POST'])
 def change_state():
-    """Обновление веса мусорки по ее id или создание новой мусорки
-    """
+    """Создание записи с видом и весом мусора"""
     record = request.json
-    fields = ('point_id', 'trash')
-
+    fields = ('trash_can_id', 'trash')
     required_fields(fields, record)
 
-    id = record['point_id']
-    fullness = record['point_full']
+    trash_can_id = record['trash_can_id']
+    user_id = record['user_id']
+    fullness = record['trash_can_full']
     trash = record['trash']
 
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
-
     weight = trash_counter(trash)
-    lat, lon = 0, 0
 
-    is_location = 'location' in record
-    if is_location:
-        loc = record['location']
-        lat, lon = loc['latitude'], loc['longitude']
+    trash_can = TrashCan.query.filter_by(id=trash_can_id)
+    user = User.query.filter_by(id=user_id)
 
-    can = TrashCan.query.filter_by(id=id)
-    is_exist = can.first() is not None
-
-    action_type = 'Update'
-
-    if is_exist:
-        update_request = {TrashCan.weight: weight, TrashCan.paper: paper,
-                          TrashCan.glass: glass, TrashCan.waste: waste,
-                          TrashCan.fullness: fullness}
-        if is_location:
-            location_update = {TrashCan.latitude: lat, TrashCan.longitude: lon}
-            update_request.update(location_update)
-        else:
-            can.update(update_request)
-    else:
-        db.session.add(TrashCan(id, weight, lat, lon, paper, glass, waste))
-        action_type = 'Creation'
-
+    db.session.add(History(user_id, trash_can_id, weight, paper, glass, waste))
+    trash_can.update({TrashCan.weight: weight})
+    user.update({User.score: weight * 10})
     db.session.commit()
-    return jsonify({'host': request.host, 'method': request.method,
-                    'charset': request.charset, 'action': action_type,
-                    'url': request.url})
+    return ('Запись успешно добавлена', 200)
+
+
+@app.route('/trash_cans', methods=['POST'])
+def post_trash_cans():
+    """Добавление новой точки сбора"""
+    fields = ('location')
+    record = request.json
+    # required_fields(fields, record)
+
+    loc = record['location']
+    lat, lon = loc['latitude'], loc['longitude']
+    db.session.add(TrashCan(lat, lon))
+    db.session.commit()
+    return ('Точка сбора успешно добавлена', 200)
 
 
 @app.route('/trash_cans', methods=['GET'])
-def show_trash_cans():
-    """Получение информации о заполненности всех существующих мусорных баков"""
-    trash_cans = TrashCan.query.order_by(TrashCan.id).all()
-    return render_template('trash_cans.html', trash_cans=trash_cans)
+def get_trash_cans():
+    trash_cans = cans_info(TrashCan.query.order_by(TrashCan.id).all())
+    return jsonify(trash_cans)
+
+
+@app.route('/history_info', methods=['GET'])
+def get_history():
+    history = history_info(History.query.order_by(History.id).all())
+    return jsonify(history)
+
+
+@app.route('/users_info', methods=['GET'])
+def get_users_info():
+    users = users_info(User.query.order_by(User.id).all())
+    return jsonify(users)
 
 
 @app.route('/add_points', methods=['POST'])
@@ -195,9 +208,9 @@ def upload_profile_pic():
 @app.route('/close_cans', methods=['POST'])
 def get_close_cans():
     req = request.json
-    fields = ('latitude','longitude')
+    fields = ('latitude', 'longitude')
 
-    # required_fields(fields, req)
+    required_fields(fields, req)
 
     lat = req['latitude']
     lon = req['longitude']
@@ -206,7 +219,7 @@ def get_close_cans():
     precison = 0.015
     if 'precison' in req:
         precison = req['precison']
-    
+
     close_cans = compare_coords(trash_cans, lat, lon, precison)
     json = {'close_cans': len(close_cans)}
 
@@ -217,4 +230,3 @@ def get_close_cans():
         n += 1
 
     return jsonify(json)
-
