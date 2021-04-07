@@ -6,9 +6,10 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img, History
-from sort.utils import trash_counter, send_email, required_fields
+from sort.utils import total_weight, send_email, required_fields
 from sort.utils import compare_coords, cans_info, users_info
 from random import randrange
+from math import fsum
 
 
 @app.route('/', methods=['GET'])
@@ -100,7 +101,8 @@ def change_state():
     trash = record['trash']
 
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
-    weight = trash_counter(trash)
+    # более точная сумма с помощью fsum
+    weight = fsum((TrashCan.weight, total_weight(trash)))
 
     trash_can = TrashCan.query.filter_by(id=trash_can_id)
     user = User.query.filter_by(id=user_id)
@@ -142,6 +144,30 @@ def get_history():
 def get_users_info():
     users = users_info(User.query.order_by(User.id).all())
     return jsonify(users)
+
+@app.route('/point_state', methods=['GET'])
+def get_point_state():
+    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+    return f'{trash_can.state}, {trash_can.state_user}'
+
+@app.route('/start_point_session', methods=['PUT'])
+def start_point_session():
+    record = request.json
+    user_state = record['user_state']
+    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+    trash_can.update({TrashCan.state: 101, TrashCan.user_state: user_state})
+    db.session.commit()
+
+    return ('Загрузка мусора началась', 200)
+
+@app.route('/end_point_session', methods=['PUT'])
+def start_point_session():
+    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+    trash_can.update({TrashCan.state: 102})
+    db.session.commit()
+
+    return ('Загрузка мусора закончилась', 200)
+
 
 
 @app.route('/add_points', methods=['POST'])
