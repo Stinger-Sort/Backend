@@ -154,7 +154,7 @@ def get_point_state():
 def start_point_session():
     record = request.json
     user_state = record['user_state']
-    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+    trash_can = TrashCan.query.filter_by(id=1)
     trash_can.update({TrashCan.state: 101, TrashCan.user_state: user_state})
     db.session.commit()
 
@@ -162,7 +162,7 @@ def start_point_session():
 
 @app.route('/end_point_session', methods=['PUT'])
 def end_point_session():
-    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+    trash_can = TrashCan.query.filter_by(id=1)
     trash_can.update({TrashCan.state: 102})
     db.session.commit()
 
