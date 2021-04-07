@@ -145,24 +145,25 @@ def get_users_info():
     users = users_info(User.query.order_by(User.id).all())
     return jsonify(users)
 
-@app.route('/point_state', methods=['GET'])
-def get_point_state():
-    trash_can = TrashCan.query.order_by(TrashCan.id).first()
+@app.route('/point_state/<point_id>', methods=['GET'])
+def get_point_state(point_id):
+    trash_can = TrashCan.query.filter_by(id=point_id).first()
     return f'{trash_can.state}, {trash_can.state_user}'
 
-@app.route('/start_point_session', methods=['PUT'])
-def start_point_session():
+@app.route('/start_point_session/<point_id>', methods=['PUT'])
+def start_point_session(point_id):
     record = request.json
     user_state = record['user_state']
-    trash_can = TrashCan.query.filter_by(id=1)
+    trash_can = TrashCan.query.filter_by(id=point_id).first()
     trash_can.update({TrashCan.state: 101, TrashCan.user_state: user_state})
     db.session.commit()
 
     return ('Загрузка мусора началась', 200)
 
-@app.route('/end_point_session', methods=['PUT'])
-def end_point_session():
-    trash_can = TrashCan.query.filter_by(id=1)
+
+@app.route('/end_point_session/<point_id>', methods=['PUT'])
+def end_point_session(point_id):
+    trash_can = TrashCan.query.filter_by(id=point_id).first()
     trash_can.update({TrashCan.state: 102})
     db.session.commit()
 
