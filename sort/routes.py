@@ -160,6 +160,7 @@ def start_point_session(point_id):
 
     return ('Загрузка мусора началась', 200)
 
+
 @app.route('/end_point_session/<point_id>', methods=['PUT'])
 def end_point_session(point_id):
     trash_can = TrashCan.query.filter_by(id=point_id).first()
