@@ -1,5 +1,6 @@
 from sort import db
 
+
 class Img(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     img = db.Column(db.Text, unique=True, nullable=False)
@@ -29,6 +30,7 @@ class TrashCan(db.Model):
     def __init__(self, lat, lon):
         self.latitude = lat
         self.longitude = lon
+
 
 class History(db.Model):
     """При каждой отправке мусора создаётся запись"""

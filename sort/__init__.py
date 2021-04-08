@@ -1,3 +1,4 @@
+from sort import models, routes
 from datetime import timedelta
 
 from flask import Flask
@@ -26,5 +27,4 @@ mail = Mail(app)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-from sort import models, routes
 db.create_all()
