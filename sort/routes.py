@@ -153,9 +153,9 @@ def get_point_state(point_id):
 @app.route('/start_point_session/<point_id>', methods=['PUT'])
 def start_point_session(point_id):
     record = request.json
-    user_state = record['user_state']
-    trash_can = TrashCan.query.filter_by(id=point_id).first()
-    trash_can.update({TrashCan.state: 101, TrashCan.user_state: user_state})
+    state_user = record['state_user']
+    trash_can = TrashCan.query.filter_by(id=point_id)
+    trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
     db.session.commit()
 
     return ('Загрузка мусора началась', 200)
