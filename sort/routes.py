@@ -101,8 +101,10 @@ def change_state():
     trash = record['trash']
 
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
+
+    trash.update({"prev_value", TrashCan.weight})
     # более точная сумма с помощью fsum
-    weight = fsum((TrashCan.weight, total_weight(trash)))
+    weight = fsum(trash.values())
 
     trash_can = TrashCan.query.filter_by(id=trash_can_id)
     user = User.query.filter_by(id=user_id)
@@ -145,10 +147,12 @@ def get_users_info():
     users = users_info(User.query.order_by(User.id).all())
     return jsonify(users)
 
+
 @app.route('/point_state/<point_id>', methods=['GET'])
 def get_point_state(point_id):
     trash_can = TrashCan.query.filter_by(id=point_id).first()
     return f'{trash_can.state}, {trash_can.state_user}'
+
 
 @app.route('/start_point_session/<point_id>', methods=['PUT'])
 def start_point_session(point_id):
@@ -168,7 +172,6 @@ def end_point_session(point_id):
     db.session.commit()
 
     return ('Загрузка мусора закончилась', 200)
-
 
 
 @app.route('/add_points', methods=['POST'])

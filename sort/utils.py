@@ -1,11 +1,7 @@
 from flask import abort
 from flask_mail import Message
 from sort import mail
-
-
-def total_weight(trash: dict):
-    """Общий вес мусора"""
-    return sum(trash.values())
+from math import fsum
 
 
 def send_email(recipients, html_body):
