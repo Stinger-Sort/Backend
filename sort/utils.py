@@ -34,7 +34,7 @@ def cans_info(cans: list):
     return info
 
 
-def history_info(users: list):
+def history_info(history: list):
     """Вывод информации о точках сборах в json"""
     info = []
     for his in history:
