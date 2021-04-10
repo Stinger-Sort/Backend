@@ -30,7 +30,7 @@ def cans_info(cans: list):
     for can in cans:
         info.append({"id": can.id, "weight": can.weight,
                      "fullness": can.fullness, "latitude": can.latitude,
-                     "longitude": can.longitude})
+                     "longitude": can.longitude,"key":can.key})
     return info
 
 

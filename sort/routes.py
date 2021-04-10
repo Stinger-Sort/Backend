@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img, History
-from sort.utils import total_weight, send_email, required_fields, history_info
+from sort.utils import send_email, required_fields, history_info
 from sort.utils import compare_coords, cans_info, users_info
 from random import randrange
 from math import fsum
@@ -122,10 +122,12 @@ def post_trash_cans():
     fields = ('location')
     record = request.json
     # required_fields(fields, record)
-
     loc = record['location']
     lat, lon = loc['latitude'], loc['longitude']
-    db.session.add(TrashCan(lat, lon))
+    t = TrashCan(lat, lon)
+    db.session.add(t)
+    db.session.commit()
+    t.key = 'Sort_can_'+str(t.id)
     db.session.commit()
     return ('Точка сбора успешно добавлена', 200)
 
@@ -154,20 +156,20 @@ def get_point_state(point_id):
     return f'{trash_can.state}, {trash_can.state_user}'
 
 
-@app.route('/start_point_session/<point_id>', methods=['PUT'])
-def start_point_session(point_id):
+@app.route('/start_point_session/<point_key>', methods=['PUT'])
+def start_point_session(point_key):
     record = request.json
     state_user = record['state_user']
-    trash_can = TrashCan.query.filter_by(id=point_id)
+    trash_can = TrashCan.query.filter_by(key=point_key)
     trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
     db.session.commit()
 
     return ('Загрузка мусора началась', 200)
 
 
-@app.route('/end_point_session/<point_id>', methods=['PUT'])
-def end_point_session(point_id):
-    trash_can = TrashCan.query.filter_by(id=point_id).first()
+@app.route('/end_point_session/<point_key>', methods=['PUT'])
+def end_point_session(point_key):
+    trash_can = TrashCan.query.filter_by(key=point_key)
     trash_can.update({TrashCan.state: 102})
     db.session.commit()
 

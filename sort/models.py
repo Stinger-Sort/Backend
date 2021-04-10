@@ -26,10 +26,12 @@ class TrashCan(db.Model):
     fullness = db.Column(db.Float, default=0)
     state = db.Column(db.Integer, default=100)
     state_user = db.Column(db.Integer, default=-1)
+    key = db.Column(db.String,nullable=True)
 
     def __init__(self, lat, lon):
         self.latitude = lat
         self.longitude = lon
+        
 
 
 class History(db.Model):
