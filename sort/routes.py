@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img, History
-from sort.utils import total_weight, send_email, required_fields
+from sort.utils import send_email, required_fields, history_info
 from sort.utils import compare_coords, cans_info, users_info
 from random import randrange
 from math import fsum
