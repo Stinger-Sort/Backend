@@ -26,5 +26,6 @@ mail = Mail(app)
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+
 from sort import models, routes
 db.create_all()
