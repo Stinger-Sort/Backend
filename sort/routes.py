@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from sort import app, db
-from sort.models import TrashCan, User, Img, History
+from sort.models import TrashCan, User, Img, History, Organization
 from sort.utils import send_email, required_fields, history_info
 from sort.utils import compare_coords, cans_info, users_info
 from random import randrange
@@ -95,16 +95,13 @@ def change_state():
     fields = ('trash_can_id', 'trash')
     required_fields(fields, record)
 
-    trash_can_id = record['trash_can_id']
-    user_id = record['user_id']
-    fullness = record['trash_can_full']
-    trash = record['trash']
-
+    trash_can_id, user_id = record['trash_can_id'], record['user_id']
+    fullness, trash = record['trash_can_full'], record['trash']
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
 
     trash.update({"prev_value", TrashCan.weight})
-    # более точная сумма с помощью fsum
-    weight = fsum(trash.values())
+    
+    weight = fsum(trash.values()) # более точная сумма с помощью fsum
 
     trash_can = TrashCan.query.filter_by(id=trash_can_id)
     user = User.query.filter_by(id=user_id)
@@ -148,6 +145,12 @@ def get_history():
 def get_users_info():
     users = users_info(User.query.order_by(User.id).all())
     return jsonify(users)
+
+
+@app.route('/organization_info', methods=['GET'])
+def get_organization_info():
+    orgs = users_info(Organization.query.order_by(Organization.id).all())
+    return jsonify(orgs)
 
 
 @app.route('/point_state/<point_id>', methods=['GET'])
