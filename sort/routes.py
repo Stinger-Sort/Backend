@@ -5,9 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from sort import app, db
-from sort.models import TrashCan, User, Img, History, Organization
-from sort.utils import send_email, required_fields, history_info
-from sort.utils import compare_coords, cans_info, users_info
+from sort.models import TrashCan, User, Img, History, Organization, Target
+from sort.utils import send_email, required_fields, compare_coords
+
 from random import randrange
 from math import fsum
 
@@ -95,13 +95,16 @@ def change_state():
     fields = ('trash_can_id', 'trash')
     required_fields(fields, record)
 
-    trash_can_id, user_id = record['trash_can_id'], record['user_id']
-    fullness, trash = record['trash_can_full'], record['trash']
+    trash_can_id = record['trash_can_id']
+    user_id = record['user_id']
+    fullness = record['trash_can_full']
+    trash = record['trash']
+
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
 
     trash.update({"prev_value", TrashCan.weight})
-    
-    weight = fsum(trash.values()) # более точная сумма с помощью fsum
+    # более точная сумма с помощью fsum
+    weight = fsum(trash.values())
 
     trash_can = TrashCan.query.filter_by(id=trash_can_id)
     user = User.query.filter_by(id=user_id)
@@ -124,33 +127,39 @@ def post_trash_cans():
     t = TrashCan(lat, lon)
     db.session.add(t)
     db.session.commit()
-    t.key = 'Sort_can_'+str(t.id)
+    t.key = 'Sort_can_' + str(t.id)
     db.session.commit()
     return ('Точка сбора успешно добавлена', 200)
 
 
 @app.route('/trash_cans', methods=['GET'])
 def get_trash_cans():
-    trash_cans = cans_info(TrashCan.query.order_by(TrashCan.id).all())
+    trash_cans = TrashCan.serialize_list(TrashCan.query.all())
     return jsonify(trash_cans)
 
 
 @app.route('/history_info', methods=['GET'])
 def get_history():
-    history = history_info(History.query.order_by(History.id).all())
+    history = History.serialize_list(History.query.all())
     return jsonify(history)
 
 
 @app.route('/users_info', methods=['GET'])
 def get_users_info():
-    users = users_info(User.query.order_by(User.id).all())
+    users = User.serialize_list(User.query.all())
     return jsonify(users)
 
 
-@app.route('/organization_info', methods=['GET'])
-def get_organization_info():
-    orgs = users_info(Organization.query.order_by(Organization.id).all())
+@app.route('/organizations_info', methods=['GET'])
+def get_organizations_info():
+    orgs = Organization.serialize_list(Organization.query.all())
     return jsonify(orgs)
+
+
+@app.route('/targets_info', methods=['GET'])
+def get_targets_info():
+    targets = Target.serialize_list(Target.query.all())
+    return jsonify(targets)
 
 
 @app.route('/point_state/<point_id>', methods=['GET'])

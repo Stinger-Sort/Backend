@@ -2,6 +2,16 @@ from sort import db
 from sqlalchemy.ext.declarative import declared_attr
 
 
+class Serializer(object):
+
+    def serialize(self):
+        return {c: getattr(self, c) for c in inspect(self).attrs.keys()}
+
+    @staticmethod
+    def serialize_list(l):
+        return [m.serialize() for m in l]
+
+
 class Img(db.Model):
     """Изображение на профиле пользователя или организации"""
     id = db.Column(db.Integer, primary_key=True)
@@ -10,11 +20,11 @@ class Img(db.Model):
     mimetype = db.Column(db.Text, nullable=False)
 
 
-class UserBase(db.Model):
+class UserBase(db.Model, Serializer):
     """Базовая модель с заработанными баллами"""
     __abstract__ = True
     name = db.Column(db.String(128))
-    score = db.Column(db.Float, default=0, nullable=False)
+    score = db.Column(db.Integer, default=0, nullable=False)
 
     # foreign key для изображения
     @declared_attr
@@ -32,7 +42,13 @@ class Organization(UserBase):
     id = db.Column(db.Integer, primary_key=True)
 
 
-class TrashCan(db.Model):
+class Target(UserBase):
+    id = db.Column(db.Integer, primary_key=True)
+    total_score = db.Column(db.Integer)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
+
+
+class TrashCan(db.Model, Serializer):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.Float, default=0)
     latitude = db.Column(db.Float, nullable=False)
@@ -47,7 +63,7 @@ class TrashCan(db.Model):
         self.longitude = lon
 
 
-class History(db.Model):
+class History(db.Model, Serializer):
     """Запись о сдаче мусора"""
     id = db.Column(db.Integer, primary_key=True)
 

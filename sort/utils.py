@@ -24,36 +24,6 @@ def required_fields(fields: tuple, record: dict):
             abort(400, f'Нет необходимого поля: {field}')
 
 
-def cans_info(cans: list):
-    """Вывод информации о точках сборах в json"""
-    info = []
-    for can in cans:
-        info.append({"id": can.id, "weight": can.weight,
-                     "fullness": can.fullness, "latitude": can.latitude,
-                     "longitude": can.longitude,"key":can.key})
-    return info
-
-
-def history_info(history: list):
-    """Вывод информации о точках сборах в json"""
-    info = []
-    for his in history:
-        info.append({"id": his.id, "weight": his.weight,
-                     "user_id": his.user_id, "trash_can_id": his.trash_can_id,
-                     "fullness": his.fullness, "paper": his.paper,
-                     "glass": his.glass, "waste": his.waste})
-    return info
-
-
-def users_info(users: list):
-    """Вывод информации о точках сборах в json"""
-    info = []
-    for user in users:
-        info.append({"id": user.id, "email": user.id,
-                     "score": user.score})
-    return info
-
-
 def db_coords(cans: list):
     lats_longs = []
     for can in cans:
