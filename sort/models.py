@@ -1,4 +1,5 @@
 from sort import db
+from sqlalchemy.ext.declarative import declared_attr
 
 
 class Serializer(object):
@@ -12,6 +13,7 @@ class Serializer(object):
 
 
 class Img(db.Model):
+    """Изображение на профиле пользователя или организации"""
     id = db.Column(db.Integer, primary_key=True)
     img = db.Column(db.Text, unique=True, nullable=False)
     name = db.Column(db.Text, nullable=False)
@@ -34,10 +36,10 @@ class User(UserBase):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
-    score = db.Column(db.Float, default=0, nullable=False)
-    profile_pic = db.relationship(
-        "Img", backref=db.backref("Img", uselist=False))
-    profile_pic_id = db.Column(db.Integer, db.ForeignKey('img.id'))
+
+
+class Organization(UserBase):
+    id = db.Column(db.Integer, primary_key=True)
 
 
 class Target(UserBase):
@@ -65,11 +67,8 @@ class History(db.Model, Serializer):
     """Запись о сдаче мусора"""
     id = db.Column(db.Integer, primary_key=True)
 
-    trash_can = db.relationship(
-        "TrashCan", backref=db.backref("TrashCan", uselist=False))
     trash_can_id = db.Column(db.Integer, db.ForeignKey('trash_can.id'))
 
-    user = db.relationship("User", backref=db.backref("User", uselist=False))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     paper = db.Column(db.Float, default=0)
