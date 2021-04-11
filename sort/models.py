@@ -1,6 +1,16 @@
 from sort import db
 
 
+class Serializer(object):
+
+    def serialize(self):
+        return {c: getattr(self, c) for c in inspect(self).attrs.keys()}
+
+    @staticmethod
+    def serialize_list(l):
+        return [m.serialize() for m in l]
+
+
 class Img(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     img = db.Column(db.Text, unique=True, nullable=False)
@@ -8,7 +18,19 @@ class Img(db.Model):
     mimetype = db.Column(db.Text, nullable=False)
 
 
-class User(db.Model):
+class UserBase(db.Model, Serializer):
+    """Базовая модель с заработанными баллами"""
+    __abstract__ = True
+    name = db.Column(db.String(128))
+    score = db.Column(db.Integer, default=0, nullable=False)
+
+    # foreign key для изображения
+    @declared_attr
+    def profile_pic_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('img.id'))
+
+
+class User(UserBase):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
@@ -18,7 +40,13 @@ class User(db.Model):
     profile_pic_id = db.Column(db.Integer, db.ForeignKey('img.id'))
 
 
-class TrashCan(db.Model):
+class Target(UserBase):
+    id = db.Column(db.Integer, primary_key=True)
+    total_score = db.Column(db.Integer)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
+
+
+class TrashCan(db.Model, Serializer):
     id = db.Column(db.Integer, primary_key=True)
     weight = db.Column(db.Float, default=0)
     latitude = db.Column(db.Float, nullable=False)
@@ -26,16 +54,15 @@ class TrashCan(db.Model):
     fullness = db.Column(db.Float, default=0)
     state = db.Column(db.Integer, default=100)
     state_user = db.Column(db.Integer, default=-1)
-    key = db.Column(db.String,nullable=True)
+    key = db.Column(db.String, nullable=True)
 
     def __init__(self, lat, lon):
         self.latitude = lat
         self.longitude = lon
-        
 
 
-class History(db.Model):
-    """При каждой отправке мусора создаётся запись"""
+class History(db.Model, Serializer):
+    """Запись о сдаче мусора"""
     id = db.Column(db.Integer, primary_key=True)
 
     trash_can = db.relationship(
