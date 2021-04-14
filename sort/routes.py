@@ -11,7 +11,6 @@ from sort.utils import send_email, required_fields, compare_coords
 from random import randrange
 from math import fsum
 
-
 @app.route('/', methods=['GET'])
 def index():
     links = []
@@ -54,7 +53,7 @@ def auth():
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, str(password)):
-            access_token = create_access_token(identity=email)
+            access_token = create_access_token(identity=user.id)
         else:
             abort(404)
     else:
@@ -74,8 +73,8 @@ def logout_route():
 @jwt_required()
 def home():
     """Профиль пользователя"""
-    current_user = get_jwt_identity()
-    return jsonify({"Current user": current_user})
+    user = User.query.filter_by(id=get_jwt_identity()).first()
+    return jsonify({"Current user": user.email})
 
 
 @app.after_request
@@ -160,6 +159,29 @@ def get_organizations_info():
 def get_targets_info():
     targets = Target.serialize_list(Target.query.all())
     return jsonify(targets)
+
+
+@app.route('/targets_info/<target_id>', methods=['GET'])
+def get_one_target(target_id):
+    target = Target.serialize(Target.query.filter_by(id=point_id).first())
+    return jsonify(target)
+
+
+@app.route('/targets_info/<target_id>', methods=['PUT'])
+@jwt_required()
+def post_one_target(target_id):
+    transfer_points = request['transfer_points']
+
+    if User.score < transfer_points:
+        return (f'Недостаточно баллов, у вас: {User.score}, необходимо {transfer_points}', 400)
+
+    user = User.query.filter_by(id=get_jwt_identity()).first()
+    user.update({User.score: User.score - transfer_points})
+
+    target = Target.serialize(Target.query.filter_by(id=point_id).first())
+    target.update({Target.score: fsum(Target.score + transfer_points)})
+    db.session.commit()
+    return ('Баллы успешно переданы', 200)
 
 
 @app.route('/point_state/<point_id>', methods=['GET'])

@@ -1,11 +1,10 @@
 from sort import db
 from sqlalchemy.ext.declarative import declared_attr
 
-
 class Serializer(object):
 
     def serialize(self):
-        return {c: getattr(self, c) for c in inspect(self).attrs.keys()}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     @staticmethod
     def serialize_list(l):
@@ -36,6 +35,12 @@ class User(UserBase):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
+
+
+    def serialize(self):
+        record = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        del record['password']
+        return record
 
 
 class Organization(UserBase):
