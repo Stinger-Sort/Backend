@@ -163,7 +163,7 @@ def get_targets_info():
 
 @app.route('/targets_info/<target_id>', methods=['GET'])
 def get_one_target(target_id):
-    target = Target.serialize(Target.query.filter_by(id=point_id).first())
+    target = Target.serialize(Target.query.filter_by(id=target_id).first())
     return jsonify(target)
 
 
@@ -178,7 +178,7 @@ def post_one_target(target_id):
     user = User.query.filter_by(id=get_jwt_identity()).first()
     user.update({User.score: User.score - transfer_points})
 
-    target = Target.serialize(Target.query.filter_by(id=point_id).first())
+    target = Target.serialize(Target.query.filter_by(id=target_id).first())
     target.update({Target.score: fsum(Target.score + transfer_points)})
     db.session.commit()
     return ('Баллы успешно переданы', 200)
