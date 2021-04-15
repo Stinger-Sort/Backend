@@ -1,6 +1,6 @@
 from flask import abort
 from flask_mail import Message
-from sort import mail
+from sort import mail, level_points
 from math import fsum
 
 
@@ -40,3 +40,15 @@ def compare_coords(cans: list, lat: float, lon: float, precision=0.015):
         if lat_dif < precision and long_dif < precision:
             close_cans.append(c)
     return close_cans
+
+
+def get_id(key):
+    return int(key.replace("Sort_can_",""))
+
+
+def level_counter(score: int):
+    level = 0
+    for l in level_points.keys():
+        if score >= level_points[l] and level < int(l):
+            level = int(l)
+    return level

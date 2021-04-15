@@ -27,5 +27,15 @@ mail = Mail(app)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
+level_points = {
+	"1": 0,
+	"2": 100,
+	"3": 200,
+	"4": 300,
+	"5": 400,
+	"6": 500,
+}
+
 from sort import models, routes
 db.create_all()
+

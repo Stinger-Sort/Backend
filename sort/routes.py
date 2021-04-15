@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img, History, Organization, Target
-from sort.utils import send_email, required_fields, compare_coords
+from sort.utils import send_email, required_fields, compare_coords, get_id
 
 from random import randrange
 from math import fsum
@@ -124,12 +124,10 @@ def post_trash_cans():
     fields = ('location')
     record = request.json
     # required_fields(fields, record)
+
     loc = record['location']
     lat, lon = loc['latitude'], loc['longitude']
-    t = TrashCan(lat, lon)
-    db.session.add(t)
-    db.session.commit()
-    t.key = 'Sort_can_' + str(t.id)
+    db.session.add(TrashCan(lat, lon))
     db.session.commit()
     return ('Точка сбора успешно добавлена', 200)
 
@@ -149,12 +147,30 @@ def get_history():
 @app.route('/users_info', methods=['GET'])
 def get_users_info():
     users = User.serialize_list(User.query.all())
+    for u in users:
+        u['level'] = User.query.filter_by(id=u['id']).first().level
     return jsonify(users)
 
 
 @app.route('/organizations_info', methods=['GET'])
-def get_organizations_info():
-    orgs = Organization.serialize_list(Organization.query.all())
+def orgs_filter():
+    """список организаций с фильтрами по score, name и district"""
+    name = request.args.get('name', default=None,type=str)
+    district = request.args.get('district', default=None,type=str)
+    fields = ('name','district')
+    filters = {'name':name, 'district':district}
+    if 'score' in request.args:
+        orgs = Organization.serialize_list(
+            Organization.query.order_by(Organization.score).all())
+    else:
+        for field in fields:
+            if filters[field] is None:
+                filters.pop(field)
+        if any(field in filters for field in fields):
+            orgs = Organization.serialize_list(
+                   Organization.query.filter_by(**filters).all())
+        else:
+            orgs = Organization.serialize_list(Organization.query.all())
     return jsonify(orgs)
 
 
@@ -195,9 +211,11 @@ def get_point_state(point_id):
 
 @app.route('/start_point_session/<point_key>', methods=['PUT'])
 def start_point_session(point_key):
+    """point_key должен быть формата Sort_can_id"""
     record = request.json
     state_user = record['state_user']
-    trash_can = TrashCan.query.filter_by(key=point_key)
+    point_id = get_id(point_key)
+    trash_can = TrashCan.query.filter_by(id=point_id)
     trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
     db.session.commit()
 
@@ -206,38 +224,13 @@ def start_point_session(point_key):
 
 @app.route('/end_point_session/<point_key>', methods=['PUT'])
 def end_point_session(point_key):
-    trash_can = TrashCan.query.filter_by(key=point_key)
+    """point_key должен быть формата Sort_can_id"""
+    point_id = get_id(point_key)
+    trash_can = TrashCan.query.filter_by(id=point_id)
     trash_can.update({TrashCan.state: 102})
     db.session.commit()
 
     return ('Загрузка мусора закончилась', 200)
-
-
-@app.route('/add_points', methods=['POST'])
-def add_points():
-    """Увеличение количества баллов пользователя"""
-
-    record = request.json
-    fields = ('user_id')
-    required_fields(fields, record)
-
-    user_id = record['user_id']
-    trash = record['trash']
-
-    is_exist = User.query.filter_by(
-        id=user_id).first() is not None
-
-    increase = trash_counter(trash)
-
-    if is_exist:
-        User.query.filter_by(id=user_id).update(
-            {User.score: User.score + increase})
-        db.session.commit()
-    else:
-        abort(404)
-
-    return jsonify({'url': request.url, 'method': request.method,
-                    'added_points': increase, 'user_id': user_id})
 
 
 @app.route('/get_score', methods=['GET'])
@@ -299,3 +292,17 @@ def get_close_cans():
         n += 1
 
     return jsonify(json)
+
+
+@app.route('/add_org', methods=['POST'])
+def add_org():
+    req = request.json
+    fields = ('name', 'district')
+
+    required_fields(fields, req)
+
+    n, d = req['name'], req['district']
+    db.session.add(Organization(name=n, district=d))
+    db.session.commit()
+
+    return 'Организация добавлена', 200
