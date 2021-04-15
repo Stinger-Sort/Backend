@@ -101,11 +101,14 @@ def change_state():
 
     paper, glass, waste = trash['paper'], trash['glass'], trash['waste']
 
-    trash.update({"prev_value", TrashCan.weight})
+    trash_can = TrashCan.query.filter_by(id=trash_can_id)
+    cur_trash_can = trash_can.first()
+
+    trash.update({"prev_value": cur_trash_can.weight})
     # более точная сумма с помощью fsum
+    print(trash)
     weight = fsum(trash.values())
 
-    trash_can = TrashCan.query.filter_by(id=trash_can_id)
     user = User.query.filter_by(id=user_id)
 
     db.session.add(History(user_id, trash_can_id, weight, paper, glass, waste))
