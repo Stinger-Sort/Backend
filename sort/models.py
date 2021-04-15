@@ -1,11 +1,13 @@
 from sort import db
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.ext.hybrid import hybrid_property
+from sort.utils import level_counter
 
 
 class Serializer(object):
 
     def serialize(self):
-        return {c: getattr(self, c) for c in inspect(self).attrs.keys()}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     @staticmethod
     def serialize_list(l):
@@ -36,10 +38,14 @@ class User(UserBase):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
+    @hybrid_property
+    def level(self):
+        return level_counter(self.score)
 
 
 class Organization(UserBase):
     id = db.Column(db.Integer, primary_key=True)
+    district = db.Column(db.String(128))
 
 
 class Target(UserBase):
@@ -56,7 +62,6 @@ class TrashCan(db.Model, Serializer):
     fullness = db.Column(db.Float, default=0)
     state = db.Column(db.Integer, default=100)
     state_user = db.Column(db.Integer, default=-1)
-    key = db.Column(db.String, nullable=True)
 
     def __init__(self, lat, lon):
         self.latitude = lat
