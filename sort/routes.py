@@ -164,10 +164,10 @@ def orgs_filter():
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
     else:
-        for field in filters.keys():
+        for field in fields:
             if filters[field] is None:
                 filters.pop(field)
-        if any(field in filters for field in filters.keys(s)):
+        if any(field in filters for field in fields):
             orgs = Organization.serialize_list(
                    Organization.query.filter_by(**filters).all())
         else:
