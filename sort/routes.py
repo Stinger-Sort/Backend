@@ -154,26 +154,24 @@ def get_users_info():
 
 
 @app.route('/organizations_info', methods=['GET'])
-def cans_filter():
+def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
     name = request.args.get('name', default=None,type=str)
     district = request.args.get('district', default=None,type=str)
+    fields = ('name','district')
+    filters = {'name':name, 'district':district}
     if 'score' in request.args:
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
     else:
-        if name and district:
+        for field in filters.keys():
+            if filters[field] is None:
+                filters.pop(field)
+        if any(field in filters for field in filters.keys(s)):
             orgs = Organization.serialize_list(
-                Organization.query.filter_by(name=name, district=district).all())
-        elif name:
-            orgs = Organization.serialize_list(
-                Organization.query.filter_by(name=name).all()) 
-        elif district:
-            orgs = Organization.serialize_list(
-                Organization.query.filter_by(district=district).all()) 
+                   Organization.query.filter_by(**filters).all())
         else:
-            orgs = Organization.serialize_list(
-                Organization.query.all()) 
+            orgs = Organization.serialize_list(Organization.query.all())
     return jsonify(orgs)
 
 

@@ -42,6 +42,11 @@ class User(UserBase):
     def level(self):
         return level_counter(self.score)
 
+    def serialize(self):
+        record = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        del record['password']
+        return record
+
 
 class Organization(UserBase):
     id = db.Column(db.Integer, primary_key=True)
