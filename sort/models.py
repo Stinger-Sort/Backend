@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sort.utils import level_counter
 
+
 class Serializer(object):
 
     def serialize(self):
@@ -37,18 +38,24 @@ class User(UserBase):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
+    first_name = db.Column(db.String(30))
+    last_name = db.Column(db.String(30))
+    city = db.Column(db.String(30))
+    phone_number = db.Column(db.String(15))
+
     @hybrid_property
     def level(self):
         return level_counter(self.score)
 
     def serialize(self):
-        record = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        record = {c.name: getattr(self, c.name)
+                  for c in self.__table__.columns}
         del record['password']
         return record
 
-
     def serialize(self):
-        record = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        record = {c.name: getattr(self, c.name)
+                  for c in self.__table__.columns}
         del record['password']
         return record
 
