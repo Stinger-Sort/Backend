@@ -1,6 +1,7 @@
 from flask import redirect, url_for, request, abort, jsonify
 from flask_jwt_extended import jwt_required, create_access_token
 from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import set_access_cookies, unset_jwt_cookies
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -10,6 +11,8 @@ from sort.utils import send_email, required_fields, compare_coords, get_id
 
 from random import randrange
 from math import fsum
+from datetime import datetime
+
 
 @app.route('/', methods=['GET'])
 def index():
@@ -54,6 +57,8 @@ def auth():
 
         if user and check_password_hash(user.password, str(password)):
             access_token = create_access_token(identity=user.id)
+            response = jsonify({"msg": "login successful"})
+            set_access_cookies(response, access_token)
         else:
             abort(404)
     else:
@@ -62,11 +67,11 @@ def auth():
     return jsonify({"access_token": access_token})
 
 
-@app.route('/logout', methods=['GET'])
-@jwt_required()
-def logout_route():
-    """Выйти из профиля"""
-    return "logout()"
+@app.route("/logout", methods=["POST"])
+def logout():
+    response = jsonify({"msg": "logout successful"})
+    unset_jwt_cookies(response)
+    return response
 
 
 @app.route('/home', methods=['GET'])
@@ -139,8 +144,10 @@ def get_trash_cans():
 
 
 @app.route('/history_info', methods=['GET'])
+@jwt_required()
 def get_history():
-    history = History.serialize_list(History.query.all())
+    user_id = get_jwt_identity()
+    history = History.serialize_list(History.query.filter_by(id=user_id).all())
     return jsonify(history)
 
 
@@ -155,10 +162,10 @@ def get_users_info():
 @app.route('/organizations_info', methods=['GET'])
 def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
-    name = request.args.get('name', default=None,type=str)
-    district = request.args.get('district', default=None,type=str)
-    fields = ('name','district')
-    filters = {'name':name, 'district':district}
+    name = request.args.get('name', default=None, type=str)
+    district = request.args.get('district', default=None, type=str)
+    fields = ('name', 'district')
+    filters = {'name': name, 'district': district}
     if 'score' in request.args:
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
@@ -168,7 +175,7 @@ def orgs_filter():
                 filters.pop(field)
         if any(field in filters for field in fields):
             orgs = Organization.serialize_list(
-                   Organization.query.filter_by(**filters).all())
+                Organization.query.filter_by(**filters).all())
         else:
             orgs = Organization.serialize_list(Organization.query.all())
     return jsonify(orgs)
@@ -189,16 +196,20 @@ def get_one_target(target_id):
 @app.route('/targets_info/<target_id>', methods=['PUT'])
 @jwt_required()
 def post_one_target(target_id):
-    transfer_points = request['transfer_points']
+    transfer_points = int(request.json['transfer_points'])
 
-    if User.score < transfer_points:
-        return (f'Недостаточно баллов, у вас: {User.score}, необходимо {transfer_points}', 400)
+    user_query = User.query.filter_by(id=get_jwt_identity())
+    user = user_query.first()
 
-    user = User.query.filter_by(id=get_jwt_identity()).first()
-    user.update({User.score: User.score - transfer_points})
+    if user.score < transfer_points:
+        return (f'Недостаточно баллов, у вас: {user.score}, необходимо {transfer_points}', 400)
 
-    target = Target.serialize(Target.query.filter_by(id=target_id).first())
-    target.update({Target.score: fsum(Target.score + transfer_points)})
+    user_query.update({User.score: user.score - transfer_points})
+
+    target_query = Target.query.filter_by(id=target_id)
+    target = target_query.first()
+
+    target_query.update({Target.score: fsum((target.score, transfer_points))})
     db.session.commit()
     return ('Баллы успешно переданы', 200)
 
