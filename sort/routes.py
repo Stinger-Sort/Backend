@@ -54,12 +54,13 @@ def auth():
 
         if user and check_password_hash(user.password, str(password)):
             access_token = create_access_token(identity=user.id)
+            user_id = user.id
         else:
             abort(404)
     else:
         abort(400)
 
-    return jsonify({"access_token": access_token})
+    return jsonify({"access_token": access_token, "user_id": user_id})
 
 
 @app.route('/logout', methods=['GET'])
