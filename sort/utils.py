@@ -1,20 +1,30 @@
-from flask import abort
+from flask import abort, current_app
 from flask_mail import Message
-from sort import mail, level_points
+from sort import mail, level_points, app
 from math import fsum
+
+from threading import Thread
+
+
+def thread_send_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
 
 
 def send_email(recipients, html_body):
     """Отправка кода для регистрации пользователя"""
 
-    subject = 'Код для авторизации в приложении Sort'
-    sender = 'sort.app.yar@gmail.com'
-    text_body = 'Sort'
+    SUBJECT = 'Код для авторизации в приложении Sort'
+    TEXT_BODY = 'Sort'
 
-    msg = Message(subject, sender=sender, recipients=recipients)
-    msg.body = text_body
+    msg = Message(
+        SUBJECT, sender=current_app.config['MAIL_DEFAULT_SENDER'], recipients=recipients)
+    msg.body = TEXT_BODY
     msg.html = html_body
-    mail.send(msg)
+    thr = Thread(target=thread_send_email, args=[
+                 current_app._get_current_object(), msg])
+    thr.start()
+    return thr
 
 
 def required_fields(fields: tuple, record: dict):
@@ -43,7 +53,7 @@ def compare_coords(cans: list, lat: float, lon: float, precision=0.015):
 
 
 def get_id(key):
-    return int(key.replace("Sort_can_",""))
+    return int(key.replace("Sort_can_", ""))
 
 
 def level_counter(score: int):
@@ -52,3 +62,13 @@ def level_counter(score: int):
         if score >= level_points[l] and level < int(l):
             level = int(l)
     return level
+
+def target_json():
+    query = []
+    for rec in record:
+        org = rec.Organization
+        target = rec.Target
+        query.append({'organization_name': org.name, 'id': target.id,
+                    'total_score': target.total_score, 'name': target.name,
+                    'score': target.score})
+    return query
