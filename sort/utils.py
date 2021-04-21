@@ -52,3 +52,13 @@ def level_counter(score: int):
         if score >= level_points[l] and level < int(l):
             level = int(l)
     return level
+
+def target_json():
+    query = []
+    for rec in record:
+        org = rec.Organization
+        target = rec.Target
+        query.append({'organization_name': org.name, 'id': target.id,
+                    'total_score': target.total_score, 'name': target.name,
+                    'score': target.score})
+    return query
