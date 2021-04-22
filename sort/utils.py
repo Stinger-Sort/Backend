@@ -1,7 +1,6 @@
 from flask import abort
 from flask_mail import Message
 from sort import mail, level_points
-from math import fsum
 
 
 def send_email(recipients, html_body):
@@ -16,13 +15,11 @@ def send_email(recipients, html_body):
     msg.html = html_body
     mail.send(msg)
 
-
 def required_fields(fields: tuple, record: dict):
     """Проверка запроса на необходимые поля"""
     for field in fields:
         if field not in record.keys():
             abort(400, f'Нет необходимого поля: {field}')
-
 
 def db_coords(cans: list):
     lats_longs = []
@@ -43,7 +40,7 @@ def compare_coords(cans: list, lat: float, lon: float, precision=0.015):
 
 
 def get_id(key):
-    return int(key.replace("Sort_can_",""))
+    return int(key.replace("Sort_can_", ""))
 
 
 def level_counter(score: int):

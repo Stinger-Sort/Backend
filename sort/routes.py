@@ -78,8 +78,29 @@ def logout():
 @jwt_required()
 def home():
     """Профиль пользователя"""
-    user = User.query.filter_by(id=get_jwt_identity()).first()
-    return jsonify({"Current user": user.email})
+    user = User.serialize(User.query.filter_by(id=get_jwt_identity()).first())
+    return jsonify(user)
+
+
+@app.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    """Обновить данные профиля"""
+    record = request.json
+
+    query_dict = {
+        User.first_name: 'first_name', User.last_name: 'last_name',
+        User.city: 'city', User.phone_number: 'phone_number'
+    }
+
+    # создаём словарь с нужными полями, находим значение в запросе по ключу
+    upd_dict = {x[0]: record[x[1]]
+                for x in query_dict.items() if x[1] in record.keys()}
+
+    user_query = User.query.filter_by(id=get_jwt_identity())
+    user_query.update(upd_dict)
+    db.session.commit()
+    return ('Данные успешно обновлены', 200)
 
 
 @app.after_request
@@ -162,10 +183,11 @@ def get_users_info():
 @app.route('/organizations_info', methods=['GET'])
 def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
+    score = request.args.get('score', default=None, type=int)
     name = request.args.get('name', default=None, type=str)
     district = request.args.get('district', default=None, type=str)
-    fields = ('name', 'district')
-    filters = {'name': name, 'district': district}
+    fields = ('name', 'district', 'score')
+    filters = {'name': name, 'district': district, 'score': score}
     if 'score' in request.args:
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
@@ -183,8 +205,17 @@ def orgs_filter():
 
 @app.route('/targets_info', methods=['GET'])
 def get_targets_info():
-    targets = Target.serialize_list(Target.query.all())
-    return jsonify(targets)
+    record = db.session.query(Target, Organization).join(
+        Target, Organization.id == Target.organization_id).all()
+
+    query = []
+    for rec in record:
+        org = rec.Organization
+        target = rec.Target
+        query.append({'organization_name': org.name, 'id': target.id,
+                      'total_score': target.total_score, 'name': target.name,
+                      'score': target.score})
+    return jsonify(query)
 
 
 @app.route('/targets_info/<target_id>', methods=['GET'])
