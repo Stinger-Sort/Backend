@@ -234,6 +234,9 @@ def post_one_target(target_id):
 
     if user.score < transfer_points:
         return (f'Недостаточно баллов, у вас: {user.score}, необходимо {transfer_points}', 400)
+    
+    if user.score <= 0:
+        return ('Баллы должны быть больше нуля', 400)
 
     user_query.update({User.score: user.score - transfer_points})
 
