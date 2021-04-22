@@ -252,10 +252,11 @@ def get_point_state(point_id):
 
 
 @app.route('/start_point_session/<point_key>', methods=['PUT'])
+@jwt_required()
 def start_point_session(point_key):
     """point_key должен быть формата Sort_can_id"""
     record = request.json
-    state_user = record['state_user']
+    state_user = get_jwt_identity()
     point_id = get_id(point_key)
     trash_can = TrashCan.query.filter_by(id=point_id)
     trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
