@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db
 from sort.models import TrashCan, User, Img, History, Organization, Target
-from sort.utils import send_email, required_fields, compare_coords, get_id, target_json
+from sort.utils import send_email, required_fields, compare_coords, get_id
 
 from random import randrange
 from math import fsum
@@ -57,8 +57,6 @@ def auth():
 
         if user and check_password_hash(user.password, str(password)):
             access_token = create_access_token(identity=user.id)
-            user_id = user.id
-
             response = jsonify({"msg": "login successful"})
             set_access_cookies(response, access_token)
         else:
@@ -66,7 +64,7 @@ def auth():
     else:
         abort(400)
 
-    return jsonify({"access_token": access_token, "user_id": user_id})
+    return jsonify({"access_token": access_token})
 
 
 @app.route("/logout", methods=["POST"])
@@ -79,14 +77,6 @@ def logout():
 @app.route('/home', methods=['GET'])
 @jwt_required()
 def home():
-    """Главная страница"""
-    user = User.query.filter_by(id=get_jwt_identity()).first()
-    return jsonify({"Current user": user.email, "score": user.score})
-
-
-@app.route('/profile', methods=['GET'])
-@jwt_required()
-def get_profile():
     """Профиль пользователя"""
     user = User.serialize(User.query.filter_by(id=get_jwt_identity()).first())
     return jsonify(user)
@@ -97,20 +87,19 @@ def get_profile():
 def update_profile():
     """Обновить данные профиля"""
     record = request.json
-    query = {}
 
-    query_fields = (User.first_name, User.last_name,
-                    User.city, User.phone_number)
-    query_values = (record['first_name'], record['last_name'],
-                    record['city'], record['phone_number'])
+    query_dict = {
+        User.first_name: 'first_name', User.last_name: 'last_name',
+        User.city: 'city', User.phone_number: 'phone_number'
+    }
 
-    for item in zip(query_fields, query_values):
-        if item[1]:
-            query.update({item})
+    # создаём словарь с нужными полями, находим значение в запросе по ключу
+    upd_dict = {x[0]: record[x[1]]
+                for x in query_dict.items() if x[1] in record.keys()}
 
     user_query = User.query.filter_by(id=get_jwt_identity())
-    user_query.update(query)
-
+    user_query.update(upd_dict)
+    db.session.commit()
     return ('Данные успешно обновлены', 200)
 
 
@@ -191,13 +180,14 @@ def get_users_info():
     return jsonify(users)
 
 
-@app.route('/organizations_info/', methods=['GET'])
+@app.route('/organizations_info', methods=['GET'])
 def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
+    score = request.args.get('score', default=None, type=int)
     name = request.args.get('name', default=None, type=str)
     district = request.args.get('district', default=None, type=str)
-    fields = ('name', 'district')
-    filters = {'name': name, 'district': district}
+    fields = ('name', 'district', 'score')
+    filters = {'name': name, 'district': district, 'score': score}
     if 'score' in request.args:
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
@@ -217,16 +207,15 @@ def orgs_filter():
 def get_targets_info():
     record = db.session.query(Target, Organization).join(
         Target, Organization.id == Target.organization_id).all()
-    return jsonify(targets_json(record))
 
-
-# @app.route('/targets_info/', methods=['GET'])
-# def filter_targets_info(filter):
-#     target = Target.query.filter_by()
-#     record = db.session.query(Target, Organization).join(
-#         Target, Organization.id == Target.organization_id).all()
-#     return jsonify(targets_json(record))
-
+    query = []
+    for rec in record:
+        org = rec.Organization
+        target = rec.Target
+        query.append({'organization_name': org.name, 'id': target.id,
+                      'total_score': target.total_score, 'name': target.name,
+                      'score': target.score})
+    return jsonify(query)
 
 
 @app.route('/targets_info/<target_id>', methods=['GET'])
