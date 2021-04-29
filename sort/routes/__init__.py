@@ -243,7 +243,6 @@ def start_point_session(point_key):
     record = request.json
     state_user = get_jwt_identity()
     point_id = get_id(point_key)
-    state_user=1
     trash_can = TrashCan.query.filter_by(id=point_id)
 
     if trash_can.first().state == 101:
