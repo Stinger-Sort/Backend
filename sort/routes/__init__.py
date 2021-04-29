@@ -154,9 +154,6 @@ def get_trash_cans():
     return jsonify(trash_cans)
 
 
-
-
-
 @app.route('/users_info', methods=['GET'])
 def get_users_info():
     users = User.serialize_list(User.query.all())
@@ -246,7 +243,12 @@ def start_point_session(point_key):
     record = request.json
     state_user = get_jwt_identity()
     point_id = get_id(point_key)
+    state_user=1
     trash_can = TrashCan.query.filter_by(id=point_id)
+
+    if trash_can.first().state == 101:
+        return ('Мусорка уже в состоянии загрузки', 208)
+
     trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
     db.session.commit()
 
