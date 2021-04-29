@@ -1,17 +1,18 @@
-from flask import redirect, url_for, request, abort, jsonify
+from flask import redirect, url_for, request, abort, jsonify, send_file
 from flask_jwt_extended import jwt_required, create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import set_access_cookies, unset_jwt_cookies
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from sort import app, db
-from sort.models import TrashCan, User, Img, History, Organization, Target
+from sort import app, db, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
+from sort.models import TrashCan, User, History, Organization, Target
 from sort.utils import send_email, required_fields, compare_coords, get_id
 
 from random import randrange
 from math import fsum
 from datetime import datetime
+import os
 
 
 @app.route('/', methods=['GET'])
@@ -69,9 +70,8 @@ def auth():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    response = jsonify({"msg": "logout successful"})
     unset_jwt_cookies(response)
-    return response
+    return jsonify({"msg": "logout successful"})
 
 
 @app.route('/home', methods=['GET'])
@@ -101,16 +101,6 @@ def update_profile():
     user_query.update(upd_dict)
     db.session.commit()
     return ('Данные успешно обновлены', 200)
-
-
-@app.after_request
-def redirect_to_signin(response):
-    """Перенаправление на страницу авторизации,
-        если пользователь не авторизован"""
-    if response.status_code == 401:
-        return redirect(url_for('login_page') + '?next=' + request.url)
-
-    return response
 
 
 @app.route('/change_state', methods=['POST'])
@@ -164,12 +154,7 @@ def get_trash_cans():
     return jsonify(trash_cans)
 
 
-@app.route('/history_info', methods=['GET'])
-@jwt_required()
-def get_history():
-    user_id = get_jwt_identity()
-    history = History.serialize_list(History.query.filter_by(id=user_id).all())
-    return jsonify(history)
+
 
 
 @app.route('/users_info', methods=['GET'])
@@ -234,7 +219,7 @@ def post_one_target(target_id):
 
     if user.score < transfer_points:
         return (f'Недостаточно баллов, у вас: {user.score}, необходимо {transfer_points}', 400)
-    
+
     if user.score <= 0:
         return ('Баллы должны быть больше нуля', 400)
 
@@ -293,24 +278,50 @@ def get_score():
     return jsonify({'user_id': user_id, 'score': score})
 
 
+def file_ext(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower()
+
+
+def allowed_file(filename):
+    return file_ext(filename) in ALLOWED_EXTENSIONS
+
+
+def folder_exists(user_id):
+    folder_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
+
+
 @app.route('/upload_profile_pic', methods=['POST'])
+@jwt_required()
 def upload_profile_pic():
 
-    pic = request.files['pic']
-    if not pic:
-        return 'Изображение отсутствует', 400
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
 
-    filename = secure_filename(pic.filename)
-    mimetype = pic.mimetype
-    print(mimetype)
-    if not filename or not mimetype:
-        return 'Ошибка при загрузке', 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
 
-    img = Img(img=pic.read(), name=filename, mimetype=mimetype)
-    db.session.add(img)
-    db.session.commit()
+        folder_path = exist_file(get_jwt_identity())
+        file.save(os.path.join(folder_path, 'profile_pic', file_ext(filename)))
 
-    return 'Изображение загружено!', 200
+        return redirect(url_for('upload_profile_pic',
+                                filename=filename))
+    return 'success', 200
+
+
+@app.route('/profile_pic')
+@jwt_required()
+def get_profile_pic():
+    exist_file(get_jwt_identity())
+    return send_file(UPLOAD_FOLDER + 'profile_pic')
 
 
 @app.route('/close_cans', methods=['POST'])
@@ -352,3 +363,27 @@ def add_org():
     db.session.commit()
 
     return 'Организация добавлена', 200
+
+
+def trash_sum(trash_type, history):
+    _sum = 0
+    for item in history:
+        _sum += item[trash_type]
+
+    return _sum
+
+
+@app.route('/user_analytics', methods=['GET'])
+@jwt_required()
+def get_user_analytics():
+
+    history = History.serialize_list(
+        History.query.filter_by(user_id=get_jwt_identity()).all())
+
+    paper = trash_sum('paper', history)
+    glass = trash_sum('glass', history)
+    waste = trash_sum('waste', history)
+
+    weight = paper + glass + waste
+
+    return jsonify({'paper': paper, 'glass': glass, 'waste': waste, 'weight': weight})
