@@ -12,8 +12,7 @@ touch config.py
 
 ```python
 # config.py
-login = 'postgres'
-password = 'password'
-database = 'postgres'
-host = '127.0.0.1'
+MAIL_PASSWORD = 'password'
+DB_BIND = 'postgres://postgres:postgres@localhost/postgres'
+UPLOAD_FOLDER = '/home/pavel/upload'
 ```
