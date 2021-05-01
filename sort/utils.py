@@ -1,6 +1,7 @@
 from flask import abort
 from flask_mail import Message
 from sort import mail, level_points
+import os
 
 
 def send_email(recipients, html_body):
@@ -15,11 +16,13 @@ def send_email(recipients, html_body):
     msg.html = html_body
     mail.send(msg)
 
+
 def required_fields(fields: tuple, record: dict):
     """Проверка запроса на необходимые поля"""
     for field in fields:
         if field not in record.keys():
             abort(400, f'Нет необходимого поля: {field}')
+
 
 def db_coords(cans: list):
     lats_longs = []
@@ -49,3 +52,18 @@ def level_counter(score: int):
         if score >= level_points[l] and level < int(l):
             level = int(l)
     return level
+
+
+def folder_exists(user_id):
+    folder_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
+
+
+def trash_sum(trash_type, history):
+    _sum = 0
+    for item in history:
+        _sum += item[trash_type]
+
+    return _sum

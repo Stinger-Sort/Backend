@@ -14,5 +14,5 @@ touch config.py
 # config.py
 MAIL_PASSWORD = 'password'
 DB_BIND = 'postgres://postgres:postgres@localhost/postgres'
-UPLOAD_FOLDER = '/home/pavel/upload'
+UPLOAD_FOLDER = '/home/user/upload'
 ```
