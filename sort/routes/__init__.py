@@ -1,77 +1,19 @@
 from flask import redirect, url_for, request, abort, jsonify, send_file
 from flask_jwt_extended import jwt_required, create_access_token
 from flask_jwt_extended import get_jwt_identity
-from flask_jwt_extended import set_access_cookies, unset_jwt_cookies
-from werkzeug.security import generate_password_hash, check_password_hash
+
 from werkzeug.utils import secure_filename
 
 from sort import app, db, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
 from sort.models import TrashCan, User, History, Organization, Target
-from sort.utils import send_email, required_fields, compare_coords, get_id
+from sort.utils import send_email, required_fields, compare_coords, get_id, trash_sum, folder_exists
 
-from random import randrange
 from math import fsum
-from datetime import datetime
-import os
 
 
 @app.route('/', methods=['GET'])
 def index():
-    links = []
-    for rule in app.url_map.iter_rules():
-        links.append(rule)
-
-    return str(links)
-
-
-@app.route('/login', methods=['POST'])
-def login_page():
-    """Email для входа и регистрации"""
-    email = request.json['email']
-    password = str(randrange(1000, 9999))
-
-    if email:
-        user = User.query.filter_by(email=email)
-        hash_pwd = generate_password_hash(password)
-        if user.first():
-            user.update({User.password: hash_pwd})
-        else:
-            new_user = User(email=email, password=hash_pwd)
-            db.session.add(new_user)
-        db.session.commit()
-
-        send_email(recipients=[email], html_body=f'<h1>{password}</h1>')
-    else:
-        abort(400)
-
-    return jsonify({"success": True})
-
-
-@app.route('/login_with_code', methods=['POST'])
-def auth():
-    """"Ввод пароля потверждения"""
-    email = request.json['email']
-    password = request.json['password']
-
-    if email and password and type(password) == int:
-        user = User.query.filter_by(email=email).first()
-
-        if user and check_password_hash(user.password, str(password)):
-            access_token = create_access_token(identity=user.id)
-            response = jsonify({"msg": "login successful"})
-            set_access_cookies(response, access_token)
-        else:
-            abort(404)
-    else:
-        abort(400)
-
-    return jsonify({"access_token": access_token})
-
-
-@app.route("/logout", methods=["POST"])
-def logout():
-    unset_jwt_cookies(response)
-    return jsonify({"msg": "logout successful"})
+    return 'Sort API v. 0.1'
 
 
 @app.route('/home', methods=['GET'])
@@ -121,8 +63,7 @@ def change_state():
     cur_trash_can = trash_can.first()
 
     trash.update({"prev_value": cur_trash_can.weight})
-    # более точная сумма с помощью fsum
-    print(trash)
+
     weight = fsum(trash.values())
 
     user = User.query.filter_by(id=user_id)
@@ -170,6 +111,7 @@ def orgs_filter():
     district = request.args.get('district', default=None, type=str)
     fields = ('name', 'district', 'score')
     filters = {'name': name, 'district': district, 'score': score}
+
     if 'score' in request.args:
         orgs = Organization.serialize_list(
             Organization.query.order_by(Organization.score).all())
@@ -262,7 +204,7 @@ def end_point_session(point_key):
     trash_can.update({TrashCan.state: 102})
     db.session.commit()
 
-    return ('Загрузка мусора закончилась', 200)
+    return 'Загрузка мусора закончилась', 200
 
 
 @app.route('/get_score', methods=['GET'])
@@ -280,98 +222,40 @@ def get_score():
 
 
 def file_ext(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower()
+    return '.' + filename.rpartition('.')[2]
 
 
 def allowed_file(filename):
     return file_ext(filename) in ALLOWED_EXTENSIONS
 
 
-def folder_exists(user_id):
-    folder_path = os.path.join(app.config['UPLOAD_FOLDER'], str(user_id))
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    return folder_path
-
-
-@app.route('/upload_profile_pic', methods=['POST'])
+@app.route('/upload_profile_pic', methods=['GET', 'POST'])
 @jwt_required()
 def upload_profile_pic():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(request.url)
 
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    file = request.files['file']
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+            # folder_path = folder_exists(get_jwt_identity())
+            file.save(os.path.join(UPLOAD_FOLDER,
+                      'profile_pic' + file_ext(filename)))
 
-        folder_path = exist_file(get_jwt_identity())
-        file.save(os.path.join(folder_path, 'profile_pic', file_ext(filename)))
-
-        return redirect(url_for('upload_profile_pic',
-                                filename=filename))
+            return redirect(url_for('upload_profile_pic',
+                                    filename=filename))
     return 'success', 200
 
 
 @app.route('/profile_pic')
-@jwt_required()
+# @jwt_required()
 def get_profile_pic():
-    exist_file(get_jwt_identity())
-    return send_file(UPLOAD_FOLDER + 'profile_pic')
-
-
-@app.route('/close_cans', methods=['POST'])
-def get_close_cans():
-    req = request.json
-    fields = ('latitude', 'longitude')
-
-    required_fields(fields, req)
-
-    lat = req['latitude']
-    lon = req['longitude']
-    trash_cans = TrashCan.query.order_by(TrashCan.id).all()
-
-    precison = 0.015
-    if 'precison' in req:
-        precison = req['precison']
-
-    close_cans = compare_coords(trash_cans, lat, lon, precison)
-    json = {'close_cans': len(close_cans)}
-
-    n = 1
-    for c in close_cans:
-        json['latitude_' + str(n)] = c[0]
-        json['longitude_' + str(n)] = c[1]
-        n += 1
-
-    return jsonify(json)
-
-
-@app.route('/add_org', methods=['POST'])
-def add_org():
-    req = request.json
-    fields = ('name', 'district')
-
-    required_fields(fields, req)
-
-    n, d = req['name'], req['district']
-    db.session.add(Organization(name=n, district=d))
-    db.session.commit()
-
-    return 'Организация добавлена', 200
-
-
-def trash_sum(trash_type, history):
-    _sum = 0
-    for item in history:
-        _sum += item[trash_type]
-
-    return _sum
+    # folder_exists(get_jwt_identity())
+    return send_file(UPLOAD_FOLDER + '/profile_pic.jpg')
 
 
 @app.route('/user_analytics', methods=['GET'])
