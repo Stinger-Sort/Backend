@@ -43,7 +43,7 @@ def update_profile():
     user_query = User.query.filter_by(id=get_jwt_identity())
     user_query.update(upd_dict)
     db.session.commit()
-    return ('Данные успешно обновлены', 200)
+    return 'Данные успешно обновлены', 200
 
 
 @app.route('/change_state', methods=['POST'])
@@ -73,7 +73,7 @@ def change_state():
     trash_can.update({TrashCan.weight: weight})
     user.update({User.score: weight * 10})
     db.session.commit()
-    return ('Запись успешно добавлена', 200)
+    return 'Запись успешно добавлена', 200
 
 
 @app.route('/trash_cans', methods=['POST'])
@@ -87,7 +87,7 @@ def post_trash_cans():
     lat, lon = loc['latitude'], loc['longitude']
     db.session.add(TrashCan(lat, lon))
     db.session.commit()
-    return ('Точка сбора успешно добавлена', 200)
+    return 'Точка сбора успешно добавлена', 200
 
 
 @app.route('/trash_cans', methods=['GET'])

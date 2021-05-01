@@ -10,6 +10,7 @@ from flask import jsonify, abort
 
 from random import randrange
 
+
 @app.route('/registration', methods=['POST'])
 def registration_page():
     record = request.json
@@ -37,8 +38,7 @@ def registration_page():
         db.session.add(new_user)
         db.session.commit()
 
-        send_email(recipient=email,
-                   confirm_code=confirm_code)
+        send_email(recipient=email, confirm_code=confirm_code)
 
     return jsonify({"success": True})
 
@@ -87,7 +87,6 @@ def login_page():
         abort(400)
 
     return jsonify({"access_token": access_token})
-    
 
 
 @app.route("/logout", methods=["POST"])
