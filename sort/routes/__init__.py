@@ -4,9 +4,10 @@ from flask_jwt_extended import get_jwt_identity
 
 from werkzeug.utils import secure_filename
 
-from sort import app, db, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
+from sort import app, db, UPLOAD_FOLDER
 from sort.models import TrashCan, User, History, Organization, Target
-from sort.utils import send_email, required_fields, compare_coords, get_id, trash_sum, folder_exists
+from sort.utils import send_email, required_fields, compare_coords, get_id
+from sort.utils import trash_sum, folder_exists, folder_exists, file_ext
 
 from math import fsum
 
@@ -91,8 +92,7 @@ def post_trash_cans():
 
 @app.route('/trash_cans', methods=['GET'])
 def get_trash_cans():
-    trash_cans = TrashCan.serialize_list(TrashCan.query.all())
-    return jsonify(trash_cans)
+    return jsonify(TrashCan.serialize_list(TrashCan.query.all()))
 
 
 @app.route('/users_info', methods=['GET'])
@@ -100,7 +100,7 @@ def get_users_info():
     users = User.serialize_list(User.query.all())
     for u in users:
         u['level'] = User.query.filter_by(id=u['id']).first().level
-    return jsonify(users)
+    return users
 
 
 @app.route('/organizations_info', methods=['GET'])
@@ -144,8 +144,7 @@ def get_targets_info():
 
 @app.route('/targets_info/<target_id>', methods=['GET'])
 def get_one_target(target_id):
-    target = Target.serialize(Target.query.filter_by(id=target_id).first())
-    return jsonify(target)
+    return Target.serialize(Target.query.filter_by(id=target_id).first())
 
 
 @app.route('/targets_info/<target_id>', methods=['PUT'])
@@ -169,7 +168,7 @@ def post_one_target(target_id):
 
     target_query.update({Target.score: fsum((target.score, transfer_points))})
     db.session.commit()
-    return ('Баллы успешно переданы', 200)
+    return 'Баллы успешно переданы', 200
 
 
 @app.route('/point_state/<point_id>', methods=['GET'])
@@ -193,7 +192,7 @@ def start_point_session(point_key):
     trash_can.update({TrashCan.state: 101, TrashCan.state_user: state_user})
     db.session.commit()
 
-    return ('Загрузка мусора началась', 200)
+    return 'Загрузка мусора началась', 200
 
 
 @app.route('/end_point_session/<point_key>', methods=['PUT'])
@@ -218,15 +217,8 @@ def get_score():
         abort(404)
 
     score = record.score
-    return jsonify({'user_id': user_id, 'score': score})
+    return {'user_id': user_id, 'score': score}
 
-
-def file_ext(filename):
-    return '.' + filename.rpartition('.')[2]
-
-
-def allowed_file(filename):
-    return file_ext(filename) in ALLOWED_EXTENSIONS
 
 
 @app.route('/upload_profile_pic', methods=['GET', 'POST'])
@@ -259,16 +251,12 @@ def get_profile_pic():
 
 
 @app.route('/user_analytics', methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def get_user_analytics():
 
     history = History.serialize_list(
-        History.query.filter_by(user_id=get_jwt_identity()).all())
+        History.query.filter_by(user_id=1).all())
 
-    paper = trash_sum('paper', history)
-    glass = trash_sum('glass', history)
-    waste = trash_sum('waste', history)
+    trash_types = ('paper', 'glass', 'waste', 'weight')
 
-    weight = paper + glass + waste
-
-    return jsonify({'paper': paper, 'glass': glass, 'waste': waste, 'weight': weight})
+    return trash_sum(trash_types, history)

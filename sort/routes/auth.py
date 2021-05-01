@@ -28,17 +28,17 @@ def registration_page():
     else:
         hash_pwd = generate_password_hash(password)
 
-        email_confirm = str(randrange(1000, 9999))
-        hash_email_confirm = generate_password_hash(email_confirm)
+        confirm_code = str(randrange(1000, 9999))
+        hash_confirm_code = generate_password_hash(confirm_code)
 
         new_user = User(email=email, password=hash_pwd,
-                        first_name=first_name, email_confirm=hash_email_confirm)
+                        first_name=first_name, email_confirm=hash_confirm_code)
 
         db.session.add(new_user)
         db.session.commit()
 
-        send_email(recipients=[email],
-                   html_body=f'<h1>{email_confirm}</h1>')
+        send_email(recipient=email,
+                   confirm_code=confirm_code)
 
     return jsonify({"success": True})
 
