@@ -1,16 +1,8 @@
 from sort import db
 from sqlalchemy.ext.hybrid import hybrid_property
 from sort.utils import level_counter
-
-
-class Serializer(object):
-
-    def serialize(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-    @staticmethod
-    def serialize_list(l):
-        return [m.serialize() for m in l]
+from .serializer import Serializer
+from .trash_can import TrashCan
 
 
 class ScoreMixin(db.Model, Serializer):
@@ -25,8 +17,7 @@ class User(ScoreMixin):
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
     email_confirm = db.Column(db.String(128))
-    first_name = db.Column(db.String(30))
-    last_name = db.Column(db.String(30))
+    name = db.Column(db.String(60))
     city = db.Column(db.String(30))
     phone_number = db.Column(db.String(15))
 
@@ -35,10 +26,9 @@ class User(ScoreMixin):
         return level_counter(self.score)
 
     def serialize(self):
-        record = {c.name: getattr(self, c.name)
-                  for c in self.__table__.columns}
-        del record['password']
-        return record
+        return{c.name: getattr(self, c.name)
+               for c in self.__table__.columns
+               if c.name not in ('password', 'email_confirm')}
 
 
 class Organization(ScoreMixin):
@@ -52,23 +42,6 @@ class Target(ScoreMixin):
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
 
 
-class TrashCan(db.Model, Serializer):
-    id = db.Column(db.Integer, primary_key=True)
-    weight = db.Column(db.Float, default=0)
-    latitude = db.Column(db.Float, nullable=False)
-    longitude = db.Column(db.Float, nullable=False)
-    paper = db.Column(db.Float, default=0)
-    glass = db.Column(db.Float, default=0)
-    waste = db.Column(db.Float, default=0)
-    fullness = db.Column(db.Float, default=0)
-    state = db.Column(db.Integer, default=100)
-    state_user = db.Column(db.Integer, default=-1)
-
-    def __init__(self, lat, lon):
-        self.latitude = lat
-        self.longitude = lon
-
-
 class History(db.Model, Serializer):
     """Запись о сдаче мусора"""
     id = db.Column(db.Integer, primary_key=True)
@@ -80,12 +53,14 @@ class History(db.Model, Serializer):
     paper = db.Column(db.Float, default=0)
     glass = db.Column(db.Float, default=0)
     waste = db.Column(db.Float, default=0)
+    plastic = db.Column(db.Float, default=0)
+
     weight = db.Column(db.Float, default=0)
-    fullness = db.Column(db.Float, default=0)
 
     def __init__(self, user_id, trash_can_id, weight, paper, glass, waste):
         self.user_id = user_id
         self.trash_can_id = trash_can_id
+        self.plastic = plastic
         self.weight = weight
         self.paper = paper
         self.glass = glass

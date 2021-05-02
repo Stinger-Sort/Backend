@@ -88,9 +88,19 @@ def login_page():
 
     return jsonify({"access_token": access_token})
 
+# TODO: доделать
+@app.route("/password_reset", methods=["POST"])
+def page_password_reset():
+    email = request.json['email']
+    user = User.query.filter_by(email=email)
+
+    if not user.first():
+        return 'Пользователь с таким email не существует', 400
+    
+
 
 @app.route("/logout", methods=["POST"])
 @jwt_required()
-def logout():
+def page_logout():
     unset_jwt_cookies(response)
     return jsonify({"msg": "logout successful"})
