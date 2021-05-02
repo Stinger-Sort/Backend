@@ -37,10 +37,9 @@ level_points = {
 	"3": 200,
 	"4": 300,
 	"5": 400,
-	"6": 500,
 }
 
 from sort import models, routes
-from sort.routes import history, auth, features
+from sort.routes import history, auth, features, profile, trash_cans, targets_info
 db.create_all()
 
