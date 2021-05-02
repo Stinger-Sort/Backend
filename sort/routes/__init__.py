@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from sort import app, db, UPLOAD_FOLDER
 from sort.models import TrashCan, User, History, Organization, Target
-from sort.utils import send_email, required_fields, compare_coords, get_id
+from sort.utils import send_email_confirm, required_fields, compare_coords, get_id
 from sort.utils import trash_sum, folder_exists, folder_exists, file_ext
 
 from math import fsum
@@ -106,25 +106,24 @@ def get_users_info():
 @app.route('/organizations_info', methods=['GET'])
 def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
-    score = request.args.get('score', default=None, type=int)
     name = request.args.get('name', default=None, type=str)
     district = request.args.get('district', default=None, type=str)
-    fields = ('name', 'district', 'score')
-    filters = {'name': name, 'district': district, 'score': score}
+    fields = ('name', 'district')
+    filters = {'name': name, 'district': district}
+
+    for field in fields:
+        if filters[field] is None:
+            filters.pop(field)
+    if any(field in filters for field in fields):
+        orgs = Organization.query.filter_by(**filters)
+    else:
+        orgs = Organization.query
 
     if 'score' in request.args:
-        orgs = Organization.serialize_list(
-            Organization.query.order_by(Organization.score).all())
-    else:
-        for field in fields:
-            if filters[field] is None:
-                filters.pop(field)
-        if any(field in filters for field in fields):
-            orgs = Organization.serialize_list(
-                Organization.query.filter_by(**filters).all())
-        else:
-            orgs = Organization.serialize_list(Organization.query.all())
-    return jsonify(orgs)
+        orgs = orgs.order_by(Organization.score.desc())
+
+    result = Organization.serialize_list(orgs.all())  
+    return jsonify(result)
 
 
 @app.route('/targets_info', methods=['GET'])

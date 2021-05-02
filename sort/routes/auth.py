@@ -1,5 +1,5 @@
 from sort.models import User
-from sort.utils import required_fields, send_email
+from sort.utils import required_fields, send_email_confirm
 from sort import app, db
 
 from flask import request

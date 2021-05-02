@@ -41,6 +41,6 @@ level_points = {
 }
 
 from sort import models, routes
-from sort.routes import history, auth
+from sort.routes import history, auth, features
 db.create_all()
 
