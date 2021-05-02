@@ -1,4 +1,5 @@
-from models import TrashCan, Organization
+from sort.models import TrashCan, Organization
+from sort import app, db
 
 @app.route('/close_cans', methods=['POST'])
 def get_close_cans():
