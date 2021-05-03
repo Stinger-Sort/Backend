@@ -23,10 +23,15 @@ def change_state():
     required_fields(fields, record)
 
     trash_can_id = record['trash_can_id']
+    user_id = record['user_id']
     trash = record['trash']
+    full = record['full']
 
     trash_can = TrashCan.query.filter_by(id=trash_can_id)
     cur_trash_can = trash_can.first()
+
+    if not cur_trash_can:
+        return 'Точка сбора не существует', 400
 
     trash.update({"prev_value": cur_trash_can.weight})
 
@@ -34,12 +39,14 @@ def change_state():
 
     user = User.query.filter_by(id=user_id)
 
-    db.session.add(History(record['user_id'], trash_can_id, weight,
+    db.session.add(History(user_id, trash_can_id, weight,
                            trash['paper'], trash['glass'],
                            trash['waste'], trash['plastic']))
-                           
-    trash_can.update({TrashCan.full_paper: full_paper, TrashCan.full_glass: full_glass,
-                     TrashCan.full_waste: full_waste, TrashCan.full_plastic: full_plastic})
+
+    trash_can.update({TrashCan.full_paper: full['paper'],
+                      TrashCan.full_glass: full['glass'],
+                      TrashCan.full_waste: full['waste'],
+                      TrashCan.full_plastic: full['plastic']})
     user.update({User.score: weight * 10})
     db.session.commit()
     return 'Запись успешно добавлена', 200
