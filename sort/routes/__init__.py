@@ -55,23 +55,18 @@ def change_state():
 @app.route('/users_info', methods=['GET'])
 def get_users_info():
     order = request.args.get('order', default=None,type=str)
+    query = request.args.get('query', default=None, type=str)
+    users = User.query
+
+    if query:
+        users = users.filter(User.name.like('%'+query+'%'))
 
     if order == "down_to_up":
-        users = User.query.order_by(User.score).all()
+        users = users.order_by(User.score)
     else:
-        users = User.query.order_by(User.score.desc()).all()
+        users = users.order_by(User.score.desc())
 
-    users = User.serialize_list(users)
-    for u in users:
-        u['level'] = User.query.filter_by(id=u['id']).first().level
-    return jsonify(users)
-
-
-@app.route('/users_search', methods=['GET'])
-def users_search():
-    query = request.args.get('query', default=None, type=str)
-    users = User.query.filter(User.name.like('%'+query+'%')).all()
-    users = User.serialize_list(users)
+    users = User.serialize_list(users.all())
     for u in users:
         u['level'] = User.query.filter_by(id=u['id']).first().level
     return jsonify(users)
@@ -82,27 +77,22 @@ def orgs_filter():
     """список организаций с фильтрами по score, name и district"""
     name = request.args.get('name', default=None, type=str)
     district = request.args.get('district', default=None, type=str)
+    query = request.args.get('query', default=None, type=str)
     fields = ('name', 'district')
     filters = {'name': name, 'district': district}
+    orgs = Organization.query
+
+    if query:
+        orgs = orgs.filter(Organization.name.like('%'+query+'%'))
 
     for field in fields:
         if filters[field] is None:
             filters.pop(field)
     if any(field in filters for field in fields):
-        orgs = Organization.query.filter_by(**filters)
-    else:
-        orgs = Organization.query
+        orgs = orgs.filter_by(**filters)
 
     if 'score' in request.args:
         orgs = orgs.order_by(Organization.score.desc())
 
     result = Organization.serialize_list(orgs.all())
     return jsonify(result)
-
-
-@app.route('/orgs_search', methods=['GET'])
-def orgs_search():
-    query = request.args.get('query', default=None, type=str)
-    orgs = Organization.query.filter(Organization.name.like('%'+query+'%')).all()
-    orgs = Organization.serialize_list(orgs)
-    return jsonify(orgs)
