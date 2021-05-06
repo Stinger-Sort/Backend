@@ -17,7 +17,7 @@ class User(ScoreMixin):
     email = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(128))
     email_confirm = db.Column(db.String(128))
-    name = db.Column(db.String(60))
+    first_name = db.Column(db.String(60))
     city = db.Column(db.String(30))
     phone_number = db.Column(db.String(15))
 

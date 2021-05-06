@@ -38,7 +38,7 @@ def registration_page():
         db.session.add(new_user)
         db.session.commit()
 
-        send_email(recipient=email, confirm_code=confirm_code)
+        send_email_confirm(recipient=email, confirm_code=confirm_code)
 
     return jsonify({"success": True})
 

@@ -47,7 +47,24 @@ def change_state():
 
 @app.route('/users_info', methods=['GET'])
 def get_users_info():
-    users = User.serialize_list(User.query.all())
+    order = request.args.get('order', default=None,type=str)
+
+    if order == "down_to_up":
+        users = User.query.order_by(User.score).all()
+    else:
+        users = User.query.order_by(User.score.desc()).all()
+
+    users = User.serialize_list(users)
+    for u in users:
+        u['level'] = User.query.filter_by(id=u['id']).first().level
+    return jsonify(users)
+
+
+@app.route('/users_search', methods=['GET'])
+def users_search():
+    query = request.args.get('query', default=None, type=str)
+    users = User.query.filter(User.first_name.like('%'+query+'%')).all()
+    users = User.serialize_list(users)
     for u in users:
         u['level'] = User.query.filter_by(id=u['id']).first().level
     return jsonify(users)
@@ -74,3 +91,11 @@ def orgs_filter():
 
     result = Organization.serialize_list(orgs.all())
     return jsonify(result)
+
+
+@app.route('/orgs_search', methods=['GET'])
+def orgs_search():
+    query = request.args.get('query', default=None, type=str)
+    orgs = Organization.query.filter(Organization.name.like('%'+query+'%')).all()
+    orgs = Organization.serialize_list(orgs)
+    return jsonify(orgs)
