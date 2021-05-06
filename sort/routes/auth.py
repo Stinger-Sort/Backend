@@ -1,5 +1,5 @@
 from sort.models import User
-from sort.utils import required_fields, send_email_confirm
+from sort.utils import required_fields, send_email_confirm, send_password_reset
 from sort import app, db
 
 from flask import request
@@ -40,7 +40,7 @@ def registration_page():
 
         send_email_confirm(recipient=email, confirm_code=confirm_code)
 
-    return jsonify({"success": True})
+    return {"success": True}
 
 
 @app.route('/email_confirm', methods=['POST'])
@@ -64,7 +64,7 @@ def email_confirm_page():
     else:
         abort(400)
 
-    return jsonify({"access_token": access_token})
+    return {"access_token": access_token}
 
 
 @app.route('/login', methods=['POST'])
@@ -86,9 +86,8 @@ def login_page():
     else:
         abort(400)
 
-    return jsonify({"access_token": access_token})
+    return {"access_token": access_token}
 
-# TODO: доделать
 @app.route("/password_reset", methods=["POST"])
 def page_password_reset():
     email = request.json['email']
@@ -96,11 +95,43 @@ def page_password_reset():
 
     if not user.first():
         return 'Пользователь с таким email не существует', 400
+      
+    temp_password = str(randrange(1000, 9999))
+    hash_temp_password = generate_password_hash(temp_password)
 
+    user.update({User.password: hash_temp_password})
+
+    send_password_reset(recipient=email, confirm_code=temp_password)
+
+    db.session.commit()
+    return 'Временный пароль выслан на почту', 200
+
+
+@app.route("/change_password", methods=["POST"])
+def page_change_password():
+    record = request.json
+
+    email = record['email']
+    old_password = record['old_password']
+    new_password = record['new_password']
+
+    user_query = User.query.filter_by(email=email)
+    user = user_query.first()
+
+    if not user:
+        return 'Неверный email', 400
+    if not check_password_hash(user.password, old_password):
+        return 'Пароли не совпадают', 400
+
+    hash_new_password = generate_password_hash(new_password)
+    user_query.update({User.password: hash_new_password})
+    
+    db.session.commit()
+    return 'Пароль успешно изменён', 200
 
 
 @app.route("/logout", methods=["POST"])
 @jwt_required()
 def page_logout():
     unset_jwt_cookies(response)
-    return jsonify({"msg": "logout successful"})
+    return {"msg": "logout successful"}
