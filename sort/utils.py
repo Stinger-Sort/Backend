@@ -6,11 +6,20 @@ import os
 
 
 def send_email_confirm(recipient: str, confirm_code: str) -> None:
-    """Отправка кода для регистрации пользователя"""
+    subject = 'Подтверждение учётной записи в приложении Relife'
+    send_email(subject, recipient, confirm_code)
 
-    subject = 'Код для авторизации в приложении Sort'
+
+def send_password_reset(recipient: str, confirm_code: str) -> None:
+    subject = 'Временный пароль для вашего аккаунта в приложении Relife'
+    send_email(subject, recipient, confirm_code)
+
+
+def send_email(subject:str, recipient: str, confirm_code: str) -> None:
+
+
     sender = 'sort.app.yar@gmail.com'
-    text_body = 'Sort'
+    text_body = 'Relife'
 
     msg = Message(subject, sender=sender, recipients=[recipient])
     msg.body = text_body
