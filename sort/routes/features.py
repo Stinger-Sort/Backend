@@ -1,5 +1,6 @@
 from sort.models import TrashCan, Organization
 from sort import app, db
+from flask import request, jsonify
 
 @app.route('/close_cans', methods=['POST'])
 def get_close_cans():
@@ -33,7 +34,7 @@ def add_org():
     req = request.json
     fields = ('name', 'district')
 
-    required_fields(fields, req)
+    # required_fields(fields, req)
 
     n, d = req['name'], req['district']
     db.session.add(Organization(name=n, district=d))
