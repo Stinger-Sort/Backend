@@ -70,7 +70,7 @@ def get_users_info():
 @app.route('/users_search', methods=['GET'])
 def users_search():
     query = request.args.get('query', default=None, type=str)
-    users = User.query.filter(User.first_name.like('%'+query+'%')).all()
+    users = User.query.filter(User.name.like('%'+query+'%')).all()
     users = User.serialize_list(users)
     for u in users:
         u['level'] = User.query.filter_by(id=u['id']).first().level
