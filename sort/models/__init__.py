@@ -26,9 +26,9 @@ class User(ScoreMixin):
         return level_counter(self.score)
 
     def serialize(self):
-        return{c.name: getattr(self, c.name)
-               for c in self.__table__.columns
-               if c.name not in ('password', 'email_confirm')}
+        return {c.name: getattr(self, c.name)
+                for c in self.__table__.columns
+                if c.name not in ('password', 'email_confirm')}
 
 
 class Organization(ScoreMixin):
@@ -57,7 +57,7 @@ class History(db.Model, Serializer):
 
     weight = db.Column(db.Float, default=0)
 
-    def __init__(self, user_id, trash_can_id, weight, paper, glass, waste):
+    def __init__(self, user_id, trash_can_id, weight, paper, glass, waste, plastic):
         self.user_id = user_id
         self.trash_can_id = trash_can_id
         self.plastic = plastic
@@ -65,3 +65,4 @@ class History(db.Model, Serializer):
         self.paper = paper
         self.glass = glass
         self.waste = waste
+        self.plastic = plastic

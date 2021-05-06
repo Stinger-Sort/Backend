@@ -14,11 +14,11 @@ from random import randrange
 @app.route('/registration', methods=['POST'])
 def registration_page():
     record = request.json
-    fields = ('email', 'password', 'first_name')
+    fields = ('email', 'password', 'name')
 
     email = record['email']
     password = record['password']
-    first_name = record['first_name']
+    name = record['name']
 
     required_fields(fields, record)
 
@@ -33,7 +33,7 @@ def registration_page():
         hash_confirm_code = generate_password_hash(confirm_code)
 
         new_user = User(email=email, password=hash_pwd,
-                        first_name=first_name, email_confirm=hash_confirm_code)
+                        name=name, email_confirm=hash_confirm_code)
 
         db.session.add(new_user)
         db.session.commit()
@@ -96,7 +96,7 @@ def page_password_reset():
 
     if not user.first():
         return 'Пользователь с таким email не существует', 400
-    
+
 
 
 @app.route("/logout", methods=["POST"])
