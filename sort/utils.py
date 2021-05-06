@@ -23,7 +23,7 @@ def send_email(subject:str, recipient: str, confirm_code: str) -> None:
 
     msg = Message(subject, sender=sender, recipients=[recipient])
     msg.body = text_body
-    msg.html = f'<h1>{html_body}</h1>'
+    msg.html = f'<h1>{confirm_code}</h1>'
     mail.send(msg)
 
 
