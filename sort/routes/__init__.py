@@ -4,7 +4,6 @@ from sort import app, db
 from sort.models import User, History, Organization
 from sort.utils import required_fields
 
-
 from ..models.trash_can import TrashCan
 
 from math import fsum

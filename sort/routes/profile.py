@@ -7,7 +7,8 @@ from werkzeug.utils import secure_filename
 from sort import app, db, UPLOAD_FOLDER
 from sort.utils import file_ext, folder_exists, trash_sum
 
-from sort.models import User
+from sort.models import User, History
+
 
 
 @app.route('/home', methods=['GET'])
@@ -69,7 +70,7 @@ def get_profile_pic():
 
 
 @app.route('/user_analytics', methods=['GET'])
-# @jwt_required()
+@jwt_required()
 def get_user_analytics():
 
     history = History.serialize_list(

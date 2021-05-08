@@ -1,10 +1,11 @@
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 from sort import app, db
+from sort.models import Target, Organization, User
 
-from sort.models import Target, Organization
+from math import fsum
 
 @app.route('/targets_info', methods=['GET'])
 def get_targets_info():
@@ -35,12 +36,13 @@ def post_one_target(target_id):
     user = user_query.first()
 
     if user.score < transfer_points:
-        return (f'Недостаточно баллов, у вас: {user.score}, необходимо {transfer_points}', 400)
+        return f'Недостаточно баллов, у вас: {user.score}, необходимо {transfer_points}', 400
 
     if transfer_points <= 0:
-        return ('Баллы должны быть больше нуля', 400)
+        return 'Баллы должны быть больше нуля', 400
 
-    user_query.update({User.score: user.score - transfer_points})
+    user_query.update({User.score: user.score - transfer_points, 
+                       User.donations_number: user.donations_number + 1})
 
     target_query = Target.query.filter_by(id=target_id)
     target = target_query.first()

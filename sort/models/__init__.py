@@ -19,6 +19,7 @@ class User(ScoreMixin):
     email_confirm = db.Column(db.String(128))
     city = db.Column(db.String(30))
     phone_number = db.Column(db.String(15))
+    donations_number = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def level(self):

@@ -18,7 +18,6 @@ def registration_page():
 
     email = record['email']
     password = record['password']
-    name = record['name']
 
     required_fields(fields, record)
 
@@ -33,7 +32,8 @@ def registration_page():
         hash_confirm_code = generate_password_hash(confirm_code)
 
         new_user = User(email=email, password=hash_pwd,
-                        name=name, email_confirm=hash_confirm_code)
+                        name=record['name'], email_confirm=hash_confirm_code,
+                        phone_number=record['phone_number'])
 
         db.session.add(new_user)
         db.session.commit()
