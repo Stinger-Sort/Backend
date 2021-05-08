@@ -38,9 +38,13 @@ def change_state():
 
     user = User.query.filter_by(id=user_id)
 
+    is_processed = True if trash_can.state == 101 else False
+
     db.session.add(History(user_id, trash_can_id, weight,
                            trash['paper'], trash['glass'],
-                           trash['waste'], trash['plastic']))
+                           trash['waste'], trash['plastic'],
+                           trash_can.longitude, trash_can.latitude,
+                           is_processed))
 
     trash_can.update({TrashCan.full_paper: full['paper'],
                       TrashCan.full_glass: full['glass'],

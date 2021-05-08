@@ -1,6 +1,7 @@
 from sort import db
 from sqlalchemy.ext.hybrid import hybrid_property
 from sort.utils import level_counter
+from datetime import datetime
 from .serializer import Serializer
 from .trash_can import TrashCan
 
@@ -56,8 +57,15 @@ class History(db.Model, Serializer):
     plastic = db.Column(db.Float, default=0)
 
     weight = db.Column(db.Float, default=0)
+    datetime = db.Column(db.String(30))
+    longitude = db.Column(db.Float)
+    latitude = db.Column(db.Float)
+    is_processed = db.Column(db.Boolean)
 
-    def __init__(self, user_id, trash_can_id, weight, paper, glass, waste, plastic):
+    def __init__(self, user_id, trash_can_id, weight, 
+                paper, glass, waste, plastic,
+                longitude, latitude, is_processed):
+
         self.user_id = user_id
         self.trash_can_id = trash_can_id
         self.plastic = plastic
@@ -66,3 +74,7 @@ class History(db.Model, Serializer):
         self.glass = glass
         self.waste = waste
         self.plastic = plastic
+        self.datetime = str(datetime.now())
+        self.latitude = latitude
+        self.longitude = longitude
+        self.is_processed = is_processed

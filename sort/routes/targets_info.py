@@ -29,7 +29,7 @@ def get_one_target(target_id):
 
 @app.route('/targets_info/<target_id>', methods=['PUT'])
 @jwt_required()
-def post_one_target(target_id):
+def put_one_target(target_id):
     transfer_points = int(request.json['transfer_points'])
 
     user_query = User.query.filter_by(id=get_jwt_identity())
